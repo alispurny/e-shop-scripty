@@ -1,0 +1,2493 @@
+/**
+ * MyBears — zjednotená grafická verzia 2.0 (SK)
+ * Vizuálny systém vychádza z MyBears Product Guide v1.8.
+ * Funkčná logika, výpočty, interné ID, URL a verejné API zostávajú zachované.
+ */
+/* MyBears – orientačná kalkulačka glykemickej nálože
+ * Verze databáze: 3.1, revize 28. 7. 2026
+ * Soubor: glycemic-load-calculator-v3.js
+ * Umiestnenie: Grafika → Editor kódu → Scripts
+ * Neodesílá data, nepoužívá cookies ani localStorage.
+ */
+(function () {
+  "use strict";
+
+
+  function injectCalculatorStyles() {
+    if (document.getElementById("mb-glc-embedded-styles")) return;
+
+    var style = document.createElement("style");
+    style.id = "mb-glc-embedded-styles";
+    style.type = "text/css";
+    style.textContent = '/* =========================================================\n   MyBears – kalkulačka glykemickej nálože\n   Kompatibilní CSS verze pre Upgates\n   ========================================================= */\n\n.mb-glc-page {\n  max-width: 920px;\n  margin: 0 auto;\n}\n\n.mb-glc-page > h2 {\n  margin: 32px 0 10px;\n  line-height: 1.35;\n}\n\n.mb-glc-page > h2:first-child {\n  margin-top: 0;\n}\n\n.mb-glc-page__notice {\n  margin: 24px 0;\n  padding: 18px 20px;\n  background: #fff9df;\n  border: 1px solid #eadb86;\n  border-radius: 12px;\n  line-height: 1.6;\n}\n\n#mb-glycemic-load-calculator {\n  margin: 28px 0 36px;\n  color: #202521;\n  font: inherit;\n}\n\n#mb-glycemic-load-calculator *,\n#mb-glycemic-load-calculator *::before,\n#mb-glycemic-load-calculator *::after {\n  box-sizing: border-box;\n}\n\n#mb-glycemic-load-calculator button,\n#mb-glycemic-load-calculator input,\n#mb-glycemic-load-calculator select {\n  font: inherit;\n}\n\n.mb-glc {\n  overflow: hidden;\n  background: #ffffff;\n  border: 1px solid #dce5df;\n  border-radius: 18px;\n  box-shadow: 0 14px 38px rgba(24, 67, 43, 0.08);\n}\n\n.mb-glc__header {\n  padding: 24px;\n  background: #f7fbf8;\n  border-bottom: 1px solid #dce5df;\n}\n\n.mb-glc__header h3 {\n  margin: 0 0 8px;\n  font-size: 30px;\n  line-height: 1.25;\n}\n\n.mb-glc__header p {\n  max-width: 760px;\n  margin: 0;\n  color: #626b65;\n  line-height: 1.6;\n}\n\n.mb-glc__formula {\n  display: inline-block;\n  margin-top: 14px;\n  padding: 8px 12px;\n  background: #ffffff;\n  border: 1px solid #dce5df;\n  border-radius: 9px;\n  font-size: 14px;\n  font-weight: 700;\n}\n\n.mb-glc__tabs {\n  display: flex;\n  gap: 8px;\n  padding: 18px 24px 0;\n}\n\n.mb-glc__tab {\n  min-height: 44px;\n  padding: 10px 16px;\n  color: #202521;\n  background: #ffffff;\n  border: 1px solid #dce5df;\n  border-radius: 10px;\n  cursor: pointer;\n  font-weight: 700;\n}\n\n.mb-glc__tab:hover {\n  border-color: #2dc26b;\n}\n\n.mb-glc__tab[aria-selected="true"] {\n  color: #ffffff;\n  background: #177d45;\n  border-color: #177d45;\n}\n\n.mb-glc__tab:focus,\n.mb-glc__button:focus,\n.mb-glc input:focus,\n.mb-glc select:focus,\n.mb-glc a:focus {\n  outline: 3px solid rgba(45, 194, 107, 0.28);\n  outline-offset: 2px;\n}\n\n.mb-glc__body {\n  padding: 24px;\n}\n\n.mb-glc__panel[hidden] {\n  display: none !important;\n}\n\n.mb-glc__grid {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 18px;\n}\n\n.mb-glc__field--full {\n  grid-column: 1 / -1;\n}\n\n.mb-glc__label {\n  display: block;\n  margin: 0 0 7px;\n  font-size: 14px;\n  font-weight: 700;\n}\n\n.mb-glc__hint {\n  display: block;\n  margin-top: 6px;\n  color: #626b65;\n  font-size: 13px;\n  line-height: 1.45;\n}\n\n.mb-glc input,\n.mb-glc select {\n  width: 100%;\n  min-height: 48px;\n  padding: 10px 12px;\n  color: #202521;\n  background: #ffffff;\n  border: 1px solid #bfcac3;\n  border-radius: 10px;\n}\n\n.mb-glc input[readonly] {\n  background: #f5f7f6;\n  color: #4d5650;\n}\n\n.mb-glc__metrics {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 12px;\n  margin: 22px 0 0;\n}\n\n.mb-glc__metric {\n  padding: 14px 16px;\n  background: #f8faf9;\n  border: 1px solid #dce5df;\n  border-radius: 11px;\n}\n\n.mb-glc__metric span {\n  display: block;\n  margin-bottom: 4px;\n  color: #626b65;\n  font-size: 13px;\n}\n\n.mb-glc__metric strong {\n  font-size: 20px;\n  line-height: 1.2;\n}\n\n.mb-glc__result {\n  margin-top: 22px;\n  padding: 20px;\n  background: #f2fbf5;\n  border: 2px solid #2dc26b;\n  border-radius: 14px;\n}\n\n.mb-glc__result-top {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 18px;\n}\n\n.mb-glc__result-label {\n  margin: 0 0 4px;\n  color: #626b65;\n  font-size: 14px;\n}\n\n.mb-glc__result-value {\n  margin: 0;\n  font-size: 48px;\n  line-height: 1;\n}\n\n.mb-glc__badge {\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  min-height: 38px;\n  padding: 8px 12px;\n  border-radius: 999px;\n  font-size: 14px;\n  font-weight: 800;\n  text-align: center;\n}\n\n.mb-glc__badge--low {\n  color: #16784a;\n  background: #dff6e9;\n}\n\n.mb-glc__badge--medium {\n  color: #8a6500;\n  background: #fff0b8;\n}\n\n.mb-glc__badge--high {\n  color: #a63232;\n  background: #fde2e2;\n}\n\n.mb-glc__interpretation {\n  margin: 14px 0 0;\n  line-height: 1.55;\n}\n\n.mb-glc__details {\n  margin-top: 16px;\n  padding-top: 16px;\n  border-top: 1px solid rgba(45, 194, 107, 0.36);\n  color: #626b65;\n  font-size: 14px;\n  line-height: 1.6;\n}\n\n.mb-glc__details p {\n  margin: 4px 0;\n}\n\n.mb-glc__details a {\n  color: #177d45;\n  font-weight: 700;\n  text-decoration: underline;\n}\n\n.mb-glc__actions {\n  display: flex;\n  justify-content: flex-end;\n  margin-top: 16px;\n}\n\n.mb-glc__button {\n  min-height: 42px;\n  padding: 9px 14px;\n  color: #177d45;\n  background: #ffffff;\n  border: 1px solid #2dc26b;\n  border-radius: 9px;\n  cursor: pointer;\n  font-weight: 700;\n}\n\n.mb-glc__button:hover {\n  background: #f2fbf5;\n}\n\n.mb-glc__warning {\n  margin: 22px 0 0;\n  padding: 15px 16px;\n  background: #fff9df;\n  border: 1px solid #eadb86;\n  border-radius: 11px;\n  color: #554a20;\n  font-size: 14px;\n  line-height: 1.55;\n}\n\n.mb-glc__privacy {\n  margin: 14px 0 0;\n  color: #626b65;\n  font-size: 13px;\n  text-align: center;\n}\n\n.mb-glc__empty {\n  padding: 12px;\n  background: #fff9df;\n  border: 1px solid #eadb86;\n  border-radius: 9px;\n  color: #554a20;\n  font-size: 14px;\n}\n\n.mb-glc-cta {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 20px;\n  margin: 30px 0;\n  padding: 22px;\n  background: #f7fbf8;\n  border: 2px solid #2dc26b;\n  border-radius: 12px;\n}\n\n.mb-glc-cta h2 {\n  margin: 0 0 6px;\n  font-size: 22px;\n  line-height: 1.35;\n}\n\n.mb-glc-cta p {\n  margin: 0;\n  line-height: 1.55;\n}\n\n.mb-glc-cta__button {\n  flex: 0 0 auto;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  min-height: 46px;\n  padding: 11px 18px;\n  color: #ffffff !important;\n  background: #177d45;\n  border-radius: 9px;\n  font-weight: 800;\n  text-decoration: none !important;\n}\n\n.mb-glc-cta__button:hover {\n  background: #12693a;\n}\n\n@media (max-width: 700px) {\n  .mb-glc__header,\n  .mb-glc__body {\n    padding: 20px;\n  }\n\n  .mb-glc__header h3 {\n    font-size: 24px;\n  }\n\n  .mb-glc__tabs {\n    padding: 16px 20px 0;\n  }\n\n  .mb-glc__tab {\n    flex: 1 1 0;\n    padding-right: 10px;\n    padding-left: 10px;\n  }\n\n  .mb-glc__grid,\n  .mb-glc__metrics {\n    grid-template-columns: 1fr;\n  }\n\n  .mb-glc__result-top {\n    align-items: flex-start;\n    flex-direction: column;\n  }\n\n  .mb-glc__result-value {\n    font-size: 36px;\n  }\n\n  .mb-glc-cta {\n    align-items: stretch;\n    flex-direction: column;\n  }\n\n  .mb-glc-cta__button {\n    width: 100%;\n  }\n}\n';
+    document.head.appendChild(style);
+  }
+
+  var CONTAINER_ID = "mb-glycemic-load-calculator";
+  var SOURCE_TABLES_URL = "https://doi.org/10.1093/ajcn/nqab233";
+
+  var FOODS = [
+  {
+    "id": "bily-psenicny-chleb",
+    "foodName": "Biely pšeničný chlieb",
+    "category": "Pečivo",
+    "preparation": "bežný krájaný chlieb",
+    "gi": 75,
+    "giMin": 72,
+    "giMax": 93,
+    "carbsPer100g": 49.0,
+    "defaultPortion": 50,
+    "note": "Hodnoty sa výrazne mení podľa múky, štruktúry striedky, kysnutia a výrobce.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "veka-bila",
+    "foodName": "Biela veka",
+    "category": "Pečivo",
+    "preparation": "česká testovaná veka; historická receptúra",
+    "gi": 75,
+    "giMin": 75,
+    "giMax": 75,
+    "carbsPer100g": 52.0,
+    "defaultPortion": 50,
+    "note": "GI 75 vychádza z konkrétneho výrobku testovaného v ČR. Dnešní receptúra môže byť iná.",
+    "evidence": "Priame testovanie konkrétnej českej položky",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "rohlik-bily",
+    "foodName": "Rožok alebo žemľa",
+    "category": "Pečivo",
+    "preparation": "mäkké biele pečivo",
+    "gi": 56,
+    "giMin": 52,
+    "giMax": 70,
+    "carbsPer100g": 53.0,
+    "defaultPortion": 43,
+    "note": "Ide o priradenie k testovaným mäkkým bielym rožkom; konkrétny český alebo slovenský výrobok sa môže líšiť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "toastovy-chleb-bily",
+    "foodName": "Toastový chlieb",
+    "category": "Pečivo",
+    "preparation": "biely, balený",
+    "gi": 75,
+    "giMin": 70,
+    "giMax": 85,
+    "carbsPer100g": 47.0,
+    "defaultPortion": 50,
+    "note": "Použite sacharidy z etikety. Prídavok tuku, cukru, vlákniny a spôsob výroby mení GI.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "zitny-kvaskovy-chleb",
+    "foodName": "Ražný kváskový chlieb",
+    "category": "Pečivo",
+    "preparation": "tradične kvasený",
+    "gi": 59,
+    "giMin": 48,
+    "giMax": 65,
+    "carbsPer100g": 42.0,
+    "defaultPortion": 50,
+    "note": "Dlhšie fermentácia a vyšší podiel žita môžu GI znižovať; označení „kváskový“ samo o sebe nízky GI nezaručuje.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "psenicno-zitny-kvaskovy",
+    "foodName": "Pšenično-ražný kváskový chlieb",
+    "category": "Pečivo",
+    "preparation": "zmiešaný kváskový",
+    "gi": 62,
+    "giMin": 50,
+    "giMax": 70,
+    "carbsPer100g": 43.0,
+    "defaultPortion": 50,
+    "note": "Rozhoduje pomer múk, hrubosť mletia, fermentácia a podiel celých zŕn.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "zitny-celozrnny-chleb",
+    "foodName": "Celozrnný ražný chlieb",
+    "category": "Pečivo",
+    "preparation": "hutný, celozrnný",
+    "gi": 65,
+    "giMin": 63,
+    "giMax": 67,
+    "carbsPer100g": 41.0,
+    "defaultPortion": 50,
+    "note": "Hutná štruktúra a celé zrná môžu spomaliť trávenie; jemne mletá múka pôsobí inak.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "celozrnny-psenicny-chleb",
+    "foodName": "Celozrnný pšeničný chlieb",
+    "category": "Pečivo",
+    "preparation": "z jemne mletej celozrnnej múky",
+    "gi": 74,
+    "giMin": 65,
+    "giMax": 85,
+    "carbsPer100g": 41.0,
+    "defaultPortion": 50,
+    "note": "Celozrnné označení automaticky neznamená nízky GI, zejména pri jemném mletia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "vicezrnny-chleb-cela-zrna",
+    "foodName": "Viaczrnný chlieb",
+    "category": "Pečivo",
+    "preparation": "s viditeľnými celými zrnami a semienkami",
+    "gi": 43,
+    "giMin": 34,
+    "giMax": 55,
+    "carbsPer100g": 40.0,
+    "defaultPortion": 50,
+    "note": "Nižší hodnoty sa týkajú výrobkov s vysokým podílem neporušených zŕn; bežný „vícezrnný“ chlieb môže byť výše.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "krehky-zitny-chleb",
+    "foodName": "Chrumkavý ražný chlieb",
+    "category": "Pečivo",
+    "preparation": "suchý chrumkavý plátek",
+    "gi": 64,
+    "giMin": 55,
+    "giMax": 72,
+    "carbsPer100g": 64.0,
+    "defaultPortion": 20,
+    "note": "GI môže byť stredná až vyšší, ale malá hmotnosť porcie často udrží GL níže.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bageta-bila",
+    "foodName": "Biela bageta",
+    "category": "Pečivo",
+    "preparation": "francouzský typ",
+    "gi": 75,
+    "giMin": 57,
+    "giMax": 83,
+    "carbsPer100g": 56.0,
+    "defaultPortion": 60,
+    "note": "Pôvodná hodnota 95 bola príliš vysoká pre bežnú bagetu; testované bagety sa najčastejšie pohybovali približne v rozmedzí 57–83.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "pita-bila",
+    "foodName": "Pita",
+    "category": "Pečivo",
+    "preparation": "biela pšeničná",
+    "gi": 68,
+    "giMin": 68,
+    "giMax": 68,
+    "carbsPer100g": 55.7,
+    "defaultPortion": 60,
+    "note": "Hodnota vychádza z priamo testované biele pity; pri baleného výrobku použite sacharidy z etikety.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "pita-celozrnna",
+    "foodName": "Pita",
+    "category": "Pečivo",
+    "preparation": "celozrnná",
+    "gi": 56,
+    "giMin": 56,
+    "giMax": 56,
+    "carbsPer100g": 52.0,
+    "defaultPortion": 60,
+    "note": "Hodnota vychádza z priamo testované celozrnné pity.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "croissant-maslovy",
+    "foodName": "Croissant",
+    "category": "Pečivo",
+    "preparation": "máslový",
+    "gi": 55,
+    "giMin": 45,
+    "giMax": 67,
+    "carbsPer100g": 45.0,
+    "defaultPortion": 60,
+    "note": "Tuk môže znížiť rýchlosť vyprázdňovania žalúdka, ale porcie stále obsahuje významné množstvo sacharidov.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ovesne-vlocky-suche",
+    "foodName": "Ovsené vločky",
+    "category": "Obilniny a raňajky",
+    "preparation": "tradiční vločky; porcie zadána v suchém stavu",
+    "gi": 55,
+    "giMin": 49,
+    "giMax": 63,
+    "carbsPer100g": 57.6,
+    "defaultPortion": 60,
+    "note": "GI zodpovedá tradičným vločkám po bežnej príprave, zatiaľ čo sacharidy sa počítajú z odváženej suchej porcie.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ovesna-kase-huste-vlocky",
+    "foodName": "Ovsená kaša",
+    "category": "Obilniny a raňajky",
+    "preparation": "z hrubých alebo silných vločiek, varená",
+    "gi": 55,
+    "giMin": 49,
+    "giMax": 63,
+    "carbsPer100g": 10.1,
+    "defaultPortion": 250,
+    "note": "Hrubšie vločky a kratšie varenie mívají nižší GI než jemné alebo instantná varianty.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ovesna-kase-jemne-vlocky",
+    "foodName": "Ovsená kaša",
+    "category": "Obilniny a raňajky",
+    "preparation": "z jemných vločiek, déle varená",
+    "gi": 76,
+    "giMin": 70,
+    "giMax": 81,
+    "carbsPer100g": 10.1,
+    "defaultPortion": 250,
+    "note": "Jemné vločky a dlhšie rozvarenie sprístupňujú škrob rýchlejšie.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ovesna-kase-instantni",
+    "foodName": "Ovsená kaša",
+    "category": "Obilniny a raňajky",
+    "preparation": "instantná, pripravená vo vode",
+    "gi": 82,
+    "giMin": 76,
+    "giMax": 87,
+    "carbsPer100g": 12.0,
+    "defaultPortion": 250,
+    "note": "Instantné spracovanie zvyčajne zvyšuje rýchlosť trávenia. Pri ochutených zmesiach použite etiketu.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "oves-steel-cut",
+    "foodName": "Ovsená kaša",
+    "category": "Obilniny a raňajky",
+    "preparation": "z rezaného ovsa (steel-cut)",
+    "gi": 50,
+    "giMin": 48,
+    "giMax": 53,
+    "carbsPer100g": 10.5,
+    "defaultPortion": 250,
+    "note": "Menej narušená štruktúra zrna bývá spojena s nižším GI.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "muesli-prirodni",
+    "foodName": "Müsli",
+    "category": "Obilniny a raňajky",
+    "preparation": "nepražené, bez pridaného cukru",
+    "gi": 55,
+    "giMin": 40,
+    "giMax": 62,
+    "carbsPer100g": 60.0,
+    "defaultPortion": 60,
+    "note": "Rozpätie je široké podľa podielu vločiek, orechov, semien a sušeného ovocia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "muesli-prazene",
+    "foodName": "Müsli alebo granola",
+    "category": "Obilniny a raňajky",
+    "preparation": "pražené alebo chrumkavé",
+    "gi": 65,
+    "giMin": 62,
+    "giMax": 86,
+    "carbsPer100g": 64.0,
+    "defaultPortion": 60,
+    "note": "Pražení, jemnejšia štruktúra a pridaná sladidla môžu GI aj množstvo sacharidov zvýšiť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "cornflakes",
+    "foodName": "Kukuričné lupienky",
+    "category": "Obilniny a raňajky",
+    "preparation": "bežné cornflakes",
+    "gi": 77,
+    "giMin": 66,
+    "giMax": 93,
+    "carbsPer100g": 81.0,
+    "defaultPortion": 40,
+    "note": "Testované výrobky sa výrazne líšia; väčšina je vo vysokom pásme GI.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bran-flakes",
+    "foodName": "Otrubové lupienky",
+    "category": "Obilniny a raňajky",
+    "preparation": "bran flakes",
+    "gi": 65,
+    "giMin": 50,
+    "giMax": 74,
+    "carbsPer100g": 67.0,
+    "defaultPortion": 40,
+    "note": "Obsah vlákniny sám o sebe nezaručuje nízky GI; dôležitá je štruktúra výrobku.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "jecne-kroupy-varene",
+    "foodName": "Jačmenné krúpy",
+    "category": "Obilniny a raňajky",
+    "preparation": "varené",
+    "gi": 25,
+    "giMin": 22,
+    "giMax": 35,
+    "carbsPer100g": 24.4,
+    "defaultPortion": 180,
+    "note": "Míra obroušení, odroda a dĺžka varenie môžu hodnotu posunout.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "pohanka-kroupy-varena",
+    "foodName": "Pohanka",
+    "category": "Obilniny a raňajky",
+    "preparation": "kroupy, varené",
+    "gi": 50,
+    "giMin": 46,
+    "giMax": 51,
+    "carbsPer100g": 17.0,
+    "defaultPortion": 180,
+    "note": "Hodnota platí pre varené kroupy; vločky alebo instantná kaše môžu mít vyšší GI.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "pohankova-kase-vlocky",
+    "foodName": "Pohánková kaša",
+    "category": "Obilniny a raňajky",
+    "preparation": "z vločiek alebo instantnejšej úpravy",
+    "gi": 71,
+    "giMin": 65,
+    "giMax": 76,
+    "carbsPer100g": 15.0,
+    "defaultPortion": 250,
+    "note": "Výraznejšie technologické narušenie zrna môže GI oproti celým krúpam zvýšiť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bulgur-vareny",
+    "foodName": "Bulgur",
+    "category": "Obilniny a raňajky",
+    "preparation": "varený",
+    "gi": 46,
+    "giMin": 45,
+    "giMax": 55,
+    "carbsPer100g": 14.1,
+    "defaultPortion": 180,
+    "note": "Hrubšie bulgur a kratšie varenie zvyčajne spomaľujú trávenie.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "kuskus-vareny",
+    "foodName": "Kuskus",
+    "category": "Obilniny a raňajky",
+    "preparation": "zaliaty horúcou vodou",
+    "gi": 65,
+    "giMin": 65,
+    "giMax": 65,
+    "carbsPer100g": 21.8,
+    "defaultPortion": 180,
+    "note": "Priamo testovaná variant; celozrnný alebo perlový kuskus sa môže líšiť.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "quinoa-bila-varena",
+    "foodName": "Quinoa",
+    "category": "Obilniny a raňajky",
+    "preparation": "biela, varená",
+    "gi": 50,
+    "giMin": 50,
+    "giMax": 53,
+    "carbsPer100g": 18.5,
+    "defaultPortion": 180,
+    "note": "Rozpätie vychádza z niekoľkých testovaných varených variantov.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "proso-jahly-varene",
+    "foodName": "Pšeno",
+    "category": "Obilniny a raňajky",
+    "preparation": "varené",
+    "gi": 64,
+    "giMin": 64,
+    "giMax": 89,
+    "carbsPer100g": 22.4,
+    "defaultPortion": 180,
+    "note": "Odroda a spôsob varenia majú veľký vplyv; preto je rozpätie zámerne široké.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "polenta-varena",
+    "foodName": "Polenta",
+    "category": "Obilniny a raňajky",
+    "preparation": "kukuričná kaše, varená",
+    "gi": 68,
+    "giMin": 68,
+    "giMax": 68,
+    "carbsPer100g": 12.5,
+    "defaultPortion": 250,
+    "note": "Priamo testovaná kukuričná kaše; instantná výrobky sa môžu líšiť.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryze-basmati-bila",
+    "foodName": "Ryža basmati",
+    "category": "Ryža",
+    "preparation": "biela, varená",
+    "gi": 62,
+    "giMin": 57,
+    "giMax": 67,
+    "carbsPer100g": 25.2,
+    "defaultPortion": 180,
+    "note": "Pôvodný GI 50 bol príliš nízky jako obecná hodnota. Testované biele basmati sa často pohybovali približne 57–67.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryze-basmati-parboiled",
+    "foodName": "Ryža basmati",
+    "category": "Ryža",
+    "preparation": "parboiled, varená",
+    "gi": 52,
+    "giMin": 52,
+    "giMax": 54,
+    "carbsPer100g": 25.0,
+    "defaultPortion": 180,
+    "note": "Predvarenie v pare môže pri niektorých výrobkoch znížiť GI oproti bežnej bielej ryži.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryze-jasminova",
+    "foodName": "Jazmínová ryža",
+    "category": "Ryža",
+    "preparation": "biela, varená",
+    "gi": 89,
+    "giMin": 80,
+    "giMax": 96,
+    "carbsPer100g": 27.3,
+    "defaultPortion": 180,
+    "note": "Pôvodný GI 80 zachytával spodnú hranicu; väčšina testovaných jazmínových ryží je vyššie.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryze-dlouhozrnna-bila",
+    "foodName": "Dlhozrnná ryža",
+    "category": "Ryža",
+    "preparation": "biela, varená",
+    "gi": 60,
+    "giMin": 47,
+    "giMax": 76,
+    "carbsPer100g": 26.3,
+    "defaultPortion": 180,
+    "note": "Odroda, obsah amylózy a spôsob varenia spôsobujú veľmi široké rozpätie.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryze-natural",
+    "foodName": "Natural ryža",
+    "category": "Ryža",
+    "preparation": "hnedá, varená",
+    "gi": 65,
+    "giMin": 48,
+    "giMax": 87,
+    "carbsPer100g": 21.7,
+    "defaultPortion": 180,
+    "note": "Hnedá farba sama osebe nezaručuje nízky GI; záleží na odrode a spracovaní.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryze-parboiled",
+    "foodName": "Parboiled ryža",
+    "category": "Ryža",
+    "preparation": "dlouhozrnná, varená",
+    "gi": 57,
+    "giMin": 48,
+    "giMax": 74,
+    "carbsPer100g": 25.0,
+    "defaultPortion": 180,
+    "note": "Jednotlivé značky a odrody sa líšia; použitá je reprezentatívna stredná hodnota.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryze-lepkava",
+    "foodName": "Lepkavá ryža",
+    "category": "Ryža",
+    "preparation": "sticky rice, varená",
+    "gi": 92,
+    "giMin": 92,
+    "giMax": 92,
+    "carbsPer100g": 28.0,
+    "defaultPortion": 180,
+    "note": "Priamo testovaná lepkavá ryža mala vysoký GI.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryze-sushi",
+    "foodName": "Ryža na sushi",
+    "category": "Ryža",
+    "preparation": "krátkozrnná, varená; bez započítania cukru v náleve",
+    "gi": 89,
+    "giMin": 80,
+    "giMax": 92,
+    "carbsPer100g": 28.0,
+    "defaultPortion": 180,
+    "note": "Krátkozrnná ryža bývá vysoko; ochucení cukrem množstvo sacharidov dále zvýší.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryzova-kase",
+    "foodName": "Ryžová kaša",
+    "category": "Ryža",
+    "preparation": "rozvarená alebo instantnejšia",
+    "gi": 78,
+    "giMin": 70,
+    "giMax": 90,
+    "carbsPer100g": 14.0,
+    "defaultPortion": 250,
+    "note": "Rozvarenie a jemná štruktúra zvyčajne zvyšujú dostupnosť škrobu.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryzove-chlebicky",
+    "foodName": "Ryžové chlebíky",
+    "category": "Ryža",
+    "preparation": "pufované",
+    "gi": 82,
+    "giMin": 76,
+    "giMax": 105,
+    "carbsPer100g": 80.0,
+    "defaultPortion": 20,
+    "note": "Pufování výrazne narúša štruktúru škrobu; testované výrobky majú veľmi široké a často vysoké GI.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "spagety-al-dente",
+    "foodName": "Špagety",
+    "category": "Cestoviny a rezance",
+    "preparation": "al dente",
+    "gi": 45,
+    "giMin": 32,
+    "giMax": 52,
+    "carbsPer100g": 28.0,
+    "defaultPortion": 200,
+    "note": "Pevnejšia štruktúra cestovín spomaľuje trávenie škrobu.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "spagety-mekke",
+    "foodName": "Špagety",
+    "category": "Cestoviny a rezance",
+    "preparation": "domäkka uvarené",
+    "gi": 58,
+    "giMin": 52,
+    "giMax": 64,
+    "carbsPer100g": 28.0,
+    "defaultPortion": 200,
+    "note": "Dlhšie varenie zvyšuje želatinizáciu škrobu a môže GI zvýšiť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "spagety-celozrnne",
+    "foodName": "Špagety",
+    "category": "Cestoviny a rezance",
+    "preparation": "celozrnné, varené",
+    "gi": 55,
+    "giMin": 48,
+    "giMax": 62,
+    "carbsPer100g": 24.0,
+    "defaultPortion": 200,
+    "note": "Celozrnné varianty sa líšia podľa hrubosti múky a času varenia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "penne-varene",
+    "foodName": "Penne",
+    "category": "Cestoviny a rezance",
+    "preparation": "uvarené al dente",
+    "gi": 50,
+    "giMin": 44,
+    "giMax": 59,
+    "carbsPer100g": 27.0,
+    "defaultPortion": 200,
+    "note": "Rozpätie vychádza z viacerých testovaných výrobkov a rôznych časov varenia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "fusilli-varene",
+    "foodName": "Fusilli",
+    "category": "Cestoviny a rezance",
+    "preparation": "uvarené al dente",
+    "gi": 55,
+    "giMin": 49,
+    "giMax": 61,
+    "carbsPer100g": 27.0,
+    "defaultPortion": 200,
+    "note": "Tvar, výrobce a stupeň uvarenie ovplyvňujú výsledok.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "tagliatelle-vajecne",
+    "foodName": "Vaječné rezance alebo tagliatelle",
+    "category": "Cestoviny a rezance",
+    "preparation": "varené",
+    "gi": 55,
+    "giMin": 47,
+    "giMax": 62,
+    "carbsPer100g": 25.0,
+    "defaultPortion": 200,
+    "note": "Použitá je reprezentatívna hodnota pre pšeničné vaječné cestoviny.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "lasagne-platy",
+    "foodName": "Lasagne",
+    "category": "Cestoviny a rezance",
+    "preparation": "uvarené pláty bez omáčky",
+    "gi": 53,
+    "giMin": 45,
+    "giMax": 60,
+    "carbsPer100g": 25.0,
+    "defaultPortion": 200,
+    "note": "Výpočet sa týka iba cestovinovej zložky, nie celého zmiešaného jedla.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "gnocchi-bramborove",
+    "foodName": "Gnocchi",
+    "category": "Cestoviny a rezance",
+    "preparation": "bramborové, varené",
+    "gi": 68,
+    "giMin": 68,
+    "giMax": 68,
+    "carbsPer100g": 29.0,
+    "defaultPortion": 200,
+    "note": "Priamo testovaný variant; receptúry s rôznym podielom zemiakov a múky sa môžu líšiť.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryzove-testoviny",
+    "foodName": "Ryžové cestoviny",
+    "category": "Cestoviny a rezance",
+    "preparation": "bezlepkové, varené",
+    "gi": 51,
+    "giMin": 51,
+    "giMax": 51,
+    "carbsPer100g": 25.0,
+    "defaultPortion": 200,
+    "note": "Priamo testovaná bezlepková ryžová pasta.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "psenicne-nudle",
+    "foodName": "Pšeničné rezance",
+    "category": "Cestoviny a rezance",
+    "preparation": "sušené, varené",
+    "gi": 62,
+    "giMin": 55,
+    "giMax": 62,
+    "carbsPer100g": 25.0,
+    "defaultPortion": 200,
+    "note": "Dĺžka varenie a použitá múka môžu hodnotu zmeniť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "brambory-varny-typ-a",
+    "foodName": "Zemiaky",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "voskové, varené; varný typ A",
+    "gi": 63,
+    "giMin": 53,
+    "giMax": 69,
+    "carbsPer100g": 15.4,
+    "defaultPortion": 200,
+    "note": "Nižšie hodnoty sa týkajú konkrétnych voskových odrôd, napríklad Nicola alebo Charlotte.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "brambory-varny-typ-c",
+    "foodName": "Zemiaky",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "múčnaté, varené; varný typ C",
+    "gi": 79,
+    "giMin": 74,
+    "giMax": 101,
+    "carbsPer100g": 15.4,
+    "defaultPortion": 200,
+    "note": "Múčnaté odrody mívají často vyšší GI; odroda je zásadná.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "brambory-ve-slupce",
+    "foodName": "Zemiaky",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "varené v šupke",
+    "gi": 65,
+    "giMin": 58,
+    "giMax": 82,
+    "carbsPer100g": 15.4,
+    "defaultPortion": 200,
+    "note": "Šupka sama nezaručuje nízky GI; dôležitá je odroda, rozvarenie a veľkosť kúskov.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bramborova-kase-domaci",
+    "foodName": "Zemiaková kaša",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "domáca z varených zemiakov",
+    "gi": 76,
+    "giMin": 68,
+    "giMax": 81,
+    "carbsPer100g": 14.0,
+    "defaultPortion": 250,
+    "note": "Pôvodný GI 87 bol príliš vysoký pre bežnú domácu kašu; instantná kaša je uvedená osobitne.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bramborova-kase-instantni",
+    "foodName": "Zemiaková kaša",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "instantná",
+    "gi": 88,
+    "giMin": 69,
+    "giMax": 97,
+    "carbsPer100g": 13.0,
+    "defaultPortion": 250,
+    "note": "Technologické spracovanie a jemná štruktúra často vedou k vyššímu GI.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "brambory-pecene",
+    "foodName": "Zemiaky",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "pečené",
+    "gi": 90,
+    "giMin": 69,
+    "giMax": 103,
+    "carbsPer100g": 18.0,
+    "defaultPortion": 250,
+    "note": "Pečené zemiaky majú často vysoký GI, ale výsledok sa výrazne mení podľa odrody.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "hranolky-trouba",
+    "foodName": "Hranolky",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "pečené v rúre",
+    "gi": 65,
+    "giMin": 55,
+    "giMax": 76,
+    "carbsPer100g": 25.0,
+    "defaultPortion": 150,
+    "note": "Použite sacharidy z etikety konkrétneho výrobku.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "hranolky-smazene",
+    "foodName": "Hranolky",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "vyprážané",
+    "gi": 63,
+    "giMin": 42,
+    "giMax": 76,
+    "carbsPer100g": 35.0,
+    "defaultPortion": 150,
+    "note": "Tuk môže spomaliť vyprázdňovanie žalúdka, ale energetická hodnota a množstvo sacharidov zostávajú významné.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bataty-varene",
+    "foodName": "Batáty",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "varené",
+    "gi": 46,
+    "giMin": 41,
+    "giMax": 61,
+    "carbsPer100g": 17.1,
+    "defaultPortion": 200,
+    "note": "Varenie vedie zvyčajne k nižším hodnotám než pečení; odrody sa líšia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bataty-pecene",
+    "foodName": "Batáty",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "pečené",
+    "gi": 87,
+    "giMin": 82,
+    "giMax": 94,
+    "carbsPer100g": 20.1,
+    "defaultPortion": 200,
+    "note": "Pečení môže výrazne zvýšiť dostupnosť škrobu oproti varenie.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "kukurice-sladka",
+    "foodName": "Sladká kukurica",
+    "category": "Zemiaky a ďalšie prílohy",
+    "preparation": "varená alebo z mikrovlnnej rúry",
+    "gi": 53,
+    "giMin": 51,
+    "giMax": 55,
+    "carbsPer100g": 12.9,
+    "defaultPortion": 150,
+    "note": "Rozpätie vychádza z priamo testovaných variantov sladkej kukurice.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "cocka-cervena",
+    "foodName": "Šošovica",
+    "category": "Strukoviny",
+    "preparation": "červená, varená",
+    "gi": 26,
+    "giMin": 14,
+    "giMax": 42,
+    "carbsPer100g": 12.0,
+    "defaultPortion": 180,
+    "note": "Odroda a miera rozvarenia spôsobujú rozdiely; strukoviny bývajú väčšinou v nízkom pásme GI.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "cocka-zelena-hneda",
+    "foodName": "Šošovica",
+    "category": "Strukoviny",
+    "preparation": "zelená alebo hnedá, varená",
+    "gi": 30,
+    "giMin": 22,
+    "giMax": 42,
+    "carbsPer100g": 12.0,
+    "defaultPortion": 180,
+    "note": "Pevnejšie zrná zvyčajne spomaľujú trávenie oproti silno rozvarenej šošovici.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "cizrna-varena",
+    "foodName": "Cícer",
+    "category": "Strukoviny",
+    "preparation": "varená",
+    "gi": 28,
+    "giMin": 10,
+    "giMax": 36,
+    "carbsPer100g": 19.0,
+    "defaultPortion": 180,
+    "note": "Rozpätie zahŕňa rôzne odrody a spôsoby varenia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "fazole-cervene",
+    "foodName": "Fazuľa",
+    "category": "Strukoviny",
+    "preparation": "červené kidney, varené",
+    "gi": 24,
+    "giMin": 19,
+    "giMax": 35,
+    "carbsPer100g": 16.0,
+    "defaultPortion": 180,
+    "note": "Hodnoty sa líšia medzi konzervovanými fazuľami a fazuľami varenými doma.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "fazole-bile",
+    "foodName": "Fazuľa",
+    "category": "Strukoviny",
+    "preparation": "biele, varené",
+    "gi": 31,
+    "giMin": 24,
+    "giMax": 40,
+    "carbsPer100g": 18.0,
+    "defaultPortion": 180,
+    "note": "Použitá je reprezentatívna hodnota pre varené biele fazuľa.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "fazole-v-tomatove-omacce",
+    "foodName": "Fazuľa",
+    "category": "Strukoviny",
+    "preparation": "v paradajkovej omáčke, konzervované",
+    "gi": 40,
+    "giMin": 35,
+    "giMax": 48,
+    "carbsPer100g": 12.9,
+    "defaultPortion": 200,
+    "note": "Pridaný cukor v omáčke môže zvýšiť množstvo sacharidov; použite etiketu.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "hrasok-zeleny",
+    "foodName": "Hrášok",
+    "category": "Strukoviny",
+    "preparation": "zelený, varený",
+    "gi": 51,
+    "giMin": 39,
+    "giMax": 54,
+    "carbsPer100g": 10.0,
+    "defaultPortion": 150,
+    "note": "Čerstvý, mražený a konzervovaný hrášok sa môžu líšiť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "hras-loupany",
+    "foodName": "Hrach",
+    "category": "Strukoviny",
+    "preparation": "lúpaný, varený",
+    "gi": 32,
+    "giMin": 25,
+    "giMax": 35,
+    "carbsPer100g": 13.0,
+    "defaultPortion": 180,
+    "note": "Rozvarenie a odroda môžu hodnotu zmeniť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "fazole-cerne",
+    "foodName": "Fazuľa",
+    "category": "Strukoviny",
+    "preparation": "čierne, varené",
+    "gi": 30,
+    "giMin": 20,
+    "giMax": 35,
+    "carbsPer100g": 16.0,
+    "defaultPortion": 180,
+    "note": "Zvyčajne nízky GI; presná hodnota závisí od odrody a prípravy.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "hummus",
+    "foodName": "Hummus",
+    "category": "Strukoviny",
+    "preparation": "cícerová nátierka",
+    "gi": 15,
+    "giMin": 6,
+    "giMax": 15,
+    "carbsPer100g": 14.0,
+    "defaultPortion": 80,
+    "note": "Receptúry sa líšia množstvím cizrny, tahini a ďalších surovin; použite etiketu, je-li dostupná.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "jablko",
+    "foodName": "Jablko",
+    "category": "Ovocie",
+    "preparation": "surové so šupkou",
+    "gi": 44,
+    "giMin": 36,
+    "giMax": 44,
+    "carbsPer100g": 12.1,
+    "defaultPortion": 150,
+    "note": "Aktuálne priamo testovaná surová jablka mala GI 44; odroda a zrelosť môžu výsledok mierne posunout.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "hruska",
+    "foodName": "Hruška",
+    "category": "Ovocie",
+    "preparation": "surová, zrelá",
+    "gi": 38,
+    "giMin": 24,
+    "giMax": 42,
+    "carbsPer100g": 12.1,
+    "defaultPortion": 160,
+    "note": "Nezralá hruška môže mít nižší GI než veľmi zrelá.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "banan-stredne-zraly",
+    "foodName": "Banán",
+    "category": "Ovocie",
+    "preparation": "stredne zrelý",
+    "gi": 49,
+    "giMin": 47,
+    "giMax": 53,
+    "carbsPer100g": 20.1,
+    "defaultPortion": 120,
+    "note": "Zrelosť významne mení zloženie škrobu a cukrov.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "banan-prezraly",
+    "foodName": "Banán",
+    "category": "Ovocie",
+    "preparation": "prezretý",
+    "gi": 57,
+    "giMin": 57,
+    "giMax": 57,
+    "carbsPer100g": 20.1,
+    "defaultPortion": 120,
+    "note": "Priamo testovaný prezretý banán mal vyšší GI ako bežne zrelý variant.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "pomeranc",
+    "foodName": "Pomaranč",
+    "category": "Ovocie",
+    "preparation": "surový",
+    "gi": 45,
+    "giMin": 40,
+    "giMax": 45,
+    "carbsPer100g": 9.1,
+    "defaultPortion": 180,
+    "note": "Celý plod obsahuje štruktúru a vlákninu, ktoré džús nemá.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "mandarinka",
+    "foodName": "Mandarinka",
+    "category": "Ovocie",
+    "preparation": "surová",
+    "gi": 47,
+    "giMin": 42,
+    "giMax": 50,
+    "carbsPer100g": 10.0,
+    "defaultPortion": 120,
+    "note": "Reprezentatívna hodnota pre citrusový plod; odrody sa líšia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "grapefruit",
+    "foodName": "Grapefruit",
+    "category": "Ovocie",
+    "preparation": "surový",
+    "gi": 25,
+    "giMin": 25,
+    "giMax": 35,
+    "carbsPer100g": 8.0,
+    "defaultPortion": 200,
+    "note": "Nízká hodnota je orientačný; veľkosť a sladkost plodu sa líšia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "hrozny",
+    "foodName": "Hrozno",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 54,
+    "giMin": 50,
+    "giMax": 59,
+    "carbsPer100g": 17.0,
+    "defaultPortion": 150,
+    "note": "Pôvodný GI 59 odpovídal horní hranici; reprezentatívna hodnota je približne 54.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "jahody",
+    "foodName": "Jahody",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 40,
+    "giMin": 25,
+    "giMax": 41,
+    "carbsPer100g": 5.7,
+    "defaultPortion": 150,
+    "note": "Nízke množstvo sacharidov v bežné porcii zvyčajne vedie k nízke GL.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "boruvky",
+    "foodName": "Čučoriedky",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 53,
+    "giMin": 50,
+    "giMax": 53,
+    "carbsPer100g": 12.1,
+    "defaultPortion": 150,
+    "note": "Hodnota vychádza okrem iného z priamo testovaných divých čučoriedok.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "maliny",
+    "foodName": "Maliny",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 25,
+    "giMin": 25,
+    "giMax": 32,
+    "carbsPer100g": 5.4,
+    "defaultPortion": 150,
+    "note": "GI je orientačný, ale nízke množství dostupných sacharidov udržuje GL porcie nízkou.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "meloun-vodni",
+    "foodName": "Vodný melón",
+    "category": "Ovocie",
+    "preparation": "čerstvý",
+    "gi": 51,
+    "giMin": 47,
+    "giMax": 55,
+    "carbsPer100g": 7.1,
+    "defaultPortion": 250,
+    "note": "Novšie testované hodnoty sú približne 47–55; staršie tabulky často uvádzali vyšší čísla.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "mango",
+    "foodName": "Mango",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 51,
+    "giMin": 41,
+    "giMax": 56,
+    "carbsPer100g": 13.5,
+    "defaultPortion": 150,
+    "note": "Odroda a zrelosť majú vliv na GI aj obsah cukrov.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ananas",
+    "foodName": "Ananas",
+    "category": "Ovocie",
+    "preparation": "čerstvý",
+    "gi": 59,
+    "giMin": 51,
+    "giMax": 66,
+    "carbsPer100g": 11.7,
+    "defaultPortion": 150,
+    "note": "Čerstvý, konzervovaný a veľmi zrelý ananas sa môžu líšiť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "broskev",
+    "foodName": "Broskyňa",
+    "category": "Ovocie",
+    "preparation": "čerstvá",
+    "gi": 42,
+    "giMin": 28,
+    "giMax": 56,
+    "carbsPer100g": 8.5,
+    "defaultPortion": 150,
+    "note": "Rozpätie je širšie pre rozdiely medzi odrodami a stupňami zrelosti.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "nektarinka",
+    "foodName": "Nektarinka",
+    "category": "Ovocie",
+    "preparation": "čerstvá",
+    "gi": 43,
+    "giMin": 43,
+    "giMax": 43,
+    "carbsPer100g": 9.0,
+    "defaultPortion": 150,
+    "note": "Priamo testovaná čerstvá nektarinka.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "kiwi",
+    "foodName": "Kiwi",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 47,
+    "giMin": 47,
+    "giMax": 47,
+    "carbsPer100g": 11.0,
+    "defaultPortion": 150,
+    "note": "Priamo testovaná čerstvá variant.",
+    "evidence": "Priame testovanie konkrétneho variantu",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "tresne",
+    "foodName": "Čerešne",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 22,
+    "giMin": 22,
+    "giMax": 29,
+    "carbsPer100g": 13.8,
+    "defaultPortion": 150,
+    "note": "Odroda a zrelosť môžu hodnotu meniť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "svestky",
+    "foodName": "Slivky",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 35,
+    "giMin": 24,
+    "giMax": 40,
+    "carbsPer100g": 10.2,
+    "defaultPortion": 150,
+    "note": "Použitá je reprezentatívna hodnota pre čerstvé slivky.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "merunky",
+    "foodName": "Marhule",
+    "category": "Ovocie",
+    "preparation": "čerstvé",
+    "gi": 38,
+    "giMin": 34,
+    "giMax": 42,
+    "carbsPer100g": 9.1,
+    "defaultPortion": 150,
+    "note": "Priamo testované čerstvé marhule sa pohybovaly približne 34–42.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "merunky-susene",
+    "foodName": "Sušené marhule",
+    "category": "Ovocie",
+    "preparation": "nesladené",
+    "gi": 42,
+    "giMin": 32,
+    "giMax": 56,
+    "carbsPer100g": 55.0,
+    "defaultPortion": 40,
+    "note": "GI môže byť nízky až stredná, ale koncentrované sacharidy môžu zvýšiť GL porcie.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "rozinky",
+    "foodName": "Hrozienka",
+    "category": "Ovocie",
+    "preparation": "sušené",
+    "gi": 64,
+    "giMin": 54,
+    "giMax": 66,
+    "carbsPer100g": 75.0,
+    "defaultPortion": 40,
+    "note": "Malá hmotnosť porcie je dôležitá, pretože sacharidy sú koncentrované.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "datle",
+    "foodName": "Datle",
+    "category": "Ovocie",
+    "preparation": "sušené, bežné odrody",
+    "gi": 49,
+    "giMin": 46,
+    "giMax": 54,
+    "carbsPer100g": 70.0,
+    "defaultPortion": 40,
+    "note": "Priamo testované odrody sa často pohybovali približne 46–54.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "mleko-polotucne",
+    "foodName": "Mlieko",
+    "category": "Mliečne výrobky",
+    "preparation": "polotučné",
+    "gi": 29,
+    "giMin": 25,
+    "giMax": 31,
+    "carbsPer100g": 4.8,
+    "defaultPortion": 250,
+    "note": "Mliečne výrobky môžu vyvolávať vyššiu inzulínovú odpoveď, než by samotný GI naznačoval.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "mleko-plnotucne",
+    "foodName": "Mlieko",
+    "category": "Mliečne výrobky",
+    "preparation": "plnotučné",
+    "gi": 32,
+    "giMin": 30,
+    "giMax": 46,
+    "carbsPer100g": 4.7,
+    "defaultPortion": 250,
+    "note": "Priamo testované výrobky sa líšili; použitá je reprezentatívna hodnota novších testov.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "jogurt-bily",
+    "foodName": "Biely jogurt",
+    "category": "Mliečne výrobky",
+    "preparation": "nesladený",
+    "gi": 17,
+    "giMin": 11,
+    "giMax": 36,
+    "carbsPer100g": 4.7,
+    "defaultPortion": 150,
+    "note": "Obsah sacharidov sa líšia podľa odkapaní a kultury; použite etiketu.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "jogurt-recky",
+    "foodName": "Grécky jogurt",
+    "category": "Mliečne výrobky",
+    "preparation": "biely, nesladený",
+    "gi": 12,
+    "giMin": 11,
+    "giMax": 19,
+    "carbsPer100g": 3.8,
+    "defaultPortion": 150,
+    "note": "Nízke množstvo sacharidov vedie spravidla k veľmi nízke GL.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "jogurt-ovocny",
+    "foodName": "Ovocný jogurt",
+    "category": "Mliečne výrobky",
+    "preparation": "sladený",
+    "gi": 41,
+    "giMin": 33,
+    "giMax": 50,
+    "carbsPer100g": 13.0,
+    "defaultPortion": 150,
+    "note": "Receptúry sa výrazne líšia množstvom pridaného cukru; etiketa má prednosť.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "kefir",
+    "foodName": "Kefír",
+    "category": "Mliečne výrobky",
+    "preparation": "biely, neochutený",
+    "gi": 18,
+    "giMin": 11,
+    "giMax": 36,
+    "carbsPer100g": 4.5,
+    "defaultPortion": 250,
+    "note": "Fermentované mliečne výrobky majú často nízky GI; konkrétna kultúra a receptúra sa líšia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "mleko-cokoladove",
+    "foodName": "Čokoládové mlieko",
+    "category": "Mliečne výrobky",
+    "preparation": "sladené",
+    "gi": 32,
+    "giMin": 24,
+    "giMax": 37,
+    "carbsPer100g": 10.5,
+    "defaultPortion": 250,
+    "note": "Použite sacharidy z etikety konkrétneho výrobku.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "zmrzlina",
+    "foodName": "Zmrzlina",
+    "category": "Mliečne výrobky",
+    "preparation": "bežná mliečna",
+    "gi": 50,
+    "giMin": 39,
+    "giMax": 62,
+    "carbsPer100g": 23.0,
+    "defaultPortion": 100,
+    "note": "Tuk znižuje rýchlosť trávenia, ale množství cukrov a veľkosť porcie sú rozhodujúce.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "ryzovy-nakyp-puding",
+    "foodName": "Ryžový puding alebo mliečna ryža",
+    "category": "Mliečne výrobky",
+    "preparation": "hotový výrobok",
+    "gi": 59,
+    "giMin": 50,
+    "giMax": 65,
+    "carbsPer100g": 18.0,
+    "defaultPortion": 200,
+    "note": "Ide o zmiešaný výrobok; receptúry sa líšia množstvím ryža, mlieka a cukru.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "sacharoza",
+    "foodName": "Kryštálový cukor",
+    "category": "Sladkosti a nápoje",
+    "preparation": "sacharóza",
+    "gi": 65,
+    "giMin": 60,
+    "giMax": 65,
+    "carbsPer100g": 100.0,
+    "defaultPortion": 10,
+    "note": "GI sacharózy je nižší ako pri čisté glukózy, ale ide prakticky o 100 % dostupných sacharidov.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "glukoza",
+    "foodName": "Glukóza",
+    "category": "Sladkosti a nápoje",
+    "preparation": "dextróza",
+    "gi": 100,
+    "giMin": 100,
+    "giMax": 100,
+    "carbsPer100g": 100.0,
+    "defaultPortion": 10,
+    "note": "Glukóza je referenčná potravina s GI 100.",
+    "evidence": "Referenčná hodnota",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "med-bezny",
+    "foodName": "Med",
+    "category": "Sladkosti a nápoje",
+    "preparation": "bežný zmiešaný med",
+    "gi": 58,
+    "giMin": 35,
+    "giMax": 77,
+    "carbsPer100g": 82.0,
+    "defaultPortion": 20,
+    "note": "GI medu sa výrazne mení podľa pomeru glukózy a fruktózy a botanického pôvodu.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "med-lipovy-cz",
+    "foodName": "Med",
+    "category": "Sladkosti a nápoje",
+    "preparation": "lipový; historicky testovaná česká vzorka",
+    "gi": 77,
+    "giMin": 77,
+    "giMax": 77,
+    "carbsPer100g": 82.0,
+    "defaultPortion": 20,
+    "note": "Hodnota sa týka konkrétneho českého vzorky a nemožno ji automaticky preniesť na každý lipový med.",
+    "evidence": "Priame testovanie konkrétnej českej položky",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "cokolada-horka",
+    "foodName": "Horká čokoláda",
+    "category": "Sladkosti a nápoje",
+    "preparation": "70–85 % kakaa",
+    "gi": 29,
+    "giMin": 18,
+    "giMax": 44,
+    "carbsPer100g": 35.0,
+    "defaultPortion": 25,
+    "note": "Pôvodná všeobecná hodnota 40 bola nahradená rozpätím podľa podielu kakaa a receptúry.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "cokolada-mlecna",
+    "foodName": "Mliečna čokoláda",
+    "category": "Sladkosti a nápoje",
+    "preparation": "bežná",
+    "gi": 45,
+    "giMin": 39,
+    "giMax": 54,
+    "carbsPer100g": 57.0,
+    "defaultPortion": 25,
+    "note": "Jednotlivé značky sa líšia obsahem cukru, tuku a mliečne zložky.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bebe-dobre-rano-4-cerealie",
+    "foodName": "Sušienky BeBe Dobré ráno",
+    "category": "Sladkosti a nápoje",
+    "preparation": "4 cereálie; historicky testovaná receptúra",
+    "gi": 51,
+    "giMin": 51,
+    "giMax": 51,
+    "carbsPer100g": 65.0,
+    "defaultPortion": 30,
+    "note": "GI sa týka staršie testované receptúry. Aktuálne zloženie a etiketa môžu byť iné.",
+    "evidence": "Priame testovanie konkrétneho českého výrobku",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "bebe-dobre-rano-orechy-med",
+    "foodName": "Sušienky BeBe Dobré ráno",
+    "category": "Sladkosti a nápoje",
+    "preparation": "orechy a med; historicky testovaná receptúra",
+    "gi": 41,
+    "giMin": 41,
+    "giMax": 41,
+    "carbsPer100g": 65.0,
+    "defaultPortion": 30,
+    "note": "GI sa týka staršie testované receptúry. Aktuálne zloženie a etiketa môžu byť iné.",
+    "evidence": "Priame testovanie konkrétneho českého výrobku",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "susenk-y-cajove",
+    "foodName": "Čajové sušienky",
+    "category": "Sladkosti a nápoje",
+    "preparation": "bežné pšeničné",
+    "gi": 55,
+    "giMin": 50,
+    "giMax": 67,
+    "carbsPer100g": 68.0,
+    "defaultPortion": 30,
+    "note": "Receptúry a veľkosti porcie sa výrazne líšia; použite etiketu.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "marmelada-dzem",
+    "foodName": "Džem alebo marmeláda",
+    "category": "Sladkosti a nápoje",
+    "preparation": "bežná sladená",
+    "gi": 51,
+    "giMin": 49,
+    "giMax": 55,
+    "carbsPer100g": 60.0,
+    "defaultPortion": 30,
+    "note": "Obsah cukru sa líšia; pri výrobku použite etiketu.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "zele-bonbony",
+    "foodName": "Želé cukríky",
+    "category": "Sladkosti a nápoje",
+    "preparation": "sladené cukrom a glukózovým sirupem",
+    "gi": 80,
+    "giMin": 70,
+    "giMax": 80,
+    "carbsPer100g": 78.0,
+    "defaultPortion": 25,
+    "note": "Hodnota je priradená k priamo testovaným želé cukrovinkám; konkrétne receptúry sa líšia.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "cola",
+    "foodName": "Colový nápoj",
+    "category": "Sladkosti a nápoje",
+    "preparation": "sladený cukrom",
+    "gi": 63,
+    "giMin": 53,
+    "giMax": 65,
+    "carbsPer100g": 10.6,
+    "defaultPortion": 330,
+    "note": "Použite sacharidy z etikety; receptúra sa mezi krajinami a značkami líši.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "pomerancovy-dzus",
+    "foodName": "Pomarančový džús",
+    "category": "Sladkosti a nápoje",
+    "preparation": "100% džús",
+    "gi": 50,
+    "giMin": 46,
+    "giMax": 54,
+    "carbsPer100g": 9.5,
+    "defaultPortion": 250,
+    "note": "Džús nemá štruktúru celého plodu a porcie sa ľahko vypije rychle.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  },
+  {
+    "id": "jablecny-dzus",
+    "foodName": "Jablkový džús",
+    "category": "Sladkosti a nápoje",
+    "preparation": "100% džús",
+    "gi": 41,
+    "giMin": 36,
+    "giMax": 44,
+    "carbsPer100g": 10.5,
+    "defaultPortion": 250,
+    "note": "Použitá je reprezentatívna hodnota pre číry alebo bežný jablčný džús.",
+    "evidence": "Reprezentatívna hodnota z viacerých testovaných variantov",
+    "sourceTitle": "University of Sydney GI Search / International Tables 2021",
+    "sourceUrl": "https://glycemicindex.com/gi-search/",
+    "carbsSourceTitle": "Typické dostupné sacharidy; pri balenom výrobku použite etiketu",
+    "carbsSourceUrl": "https://www.nutridatabaze.cz/"
+  }
+];
+
+  var numberFormatter = new Intl.NumberFormat("sk-SK", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1
+  });
+
+  function normalize(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  function formatNumber(value) {
+    return Number.isFinite(value) ? numberFormatter.format(value) : "–";
+  }
+
+  function parseNumber(value) {
+    var parsed = Number(String(value).replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : NaN;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function getCategory(gl) {
+    if (gl <= 10) {
+      return { key: "low", label: "Nízka GL", text: "Nízká glykemická nálož (10 a menej)." };
+    }
+    if (gl < 20) {
+      return { key: "medium", label: "Stredná GL", text: "Stredný glykemická nálož (11–19)." };
+    }
+    return { key: "high", label: "Vysoká GL", text: "Vysoká glykemická nálož (20 a viac)." };
+  }
+
+  function formatRange(min, max) {
+    if (!Number.isFinite(min) || !Number.isFinite(max)) return "–";
+    if (Math.abs(max - min) < 0.05) return formatNumber(min);
+    return formatNumber(min) + "–" + formatNumber(max);
+  }
+
+  function giDisplay(food) {
+    if (!food) return "";
+    if (food.giMin === food.giMax) return formatNumber(food.gi);
+    return formatNumber(food.gi) + " (rozmedzí " + formatNumber(food.giMin) + "–" + formatNumber(food.giMax) + ")";
+  }
+
+  function uniqueSorted(values) {
+    return Array.from(new Set(values)).sort(function (a, b) {
+      return a.localeCompare(b, "sk");
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function initCalculator(container) {
+    if (!container || container.dataset.mbGlcInitialized === "true") return;
+    container.dataset.mbGlcInitialized = "true";
+
+    container.innerHTML = `
+      <div class="mb-glc">
+        <div class="mb-glc__header">
+          <h3>Kalkulačka glykemickej nálože</h3>
+          <p>Orientačný výpočet pre jednu potravinu alebo jej porciu. Pri bežných potravinách zobrazuje reprezentatívny GI aj rozpätie zistené pri testovaných variantoch.</p>
+          <span class="mb-glc__formula">GL = GI × dostupné sacharidy v porcii ÷ 100</span>
+          <span class="mb-glc__formula">Databáza 3.0 · 118 položiek · revízia 07/2026</span>
+        </div>
+
+        <div class="mb-glc__tabs" role="tablist" aria-label="Spôsob výpočtu">
+          <button class="mb-glc__tab" id="mb-glc-tab-food" type="button" role="tab" aria-controls="mb-glc-panel-food" aria-selected="true">Výber potraviny</button>
+          <button class="mb-glc__tab" id="mb-glc-tab-manual" type="button" role="tab" aria-controls="mb-glc-panel-manual" aria-selected="false" tabindex="-1">Ručný výpočet</button>
+        </div>
+
+        <div class="mb-glc__body">
+          <section class="mb-glc__panel" id="mb-glc-panel-food" role="tabpanel" aria-labelledby="mb-glc-tab-food">
+            <div class="mb-glc__grid">
+              <div class="mb-glc__field mb-glc__field--full">
+                <label class="mb-glc__label" for="mb-glc-search">Vyhľadať potravinu</label>
+                <input id="mb-glc-search" type="search" autocomplete="off" placeholder="Napr. ovsené vločky, jablko alebo ryža">
+                <span class="mb-glc__hint">Vyhľadávanie filtruje názov, kategóriu aj variant prípravy.</span>
+              </div>
+
+              <div class="mb-glc__field">
+                <label class="mb-glc__label" for="mb-glc-category">Kategória</label>
+                <select id="mb-glc-category"></select>
+              </div>
+
+              <div class="mb-glc__field">
+                <label class="mb-glc__label" for="mb-glc-food">Potravina</label>
+                <select id="mb-glc-food"></select>
+              </div>
+
+              <div class="mb-glc__field">
+                <label class="mb-glc__label" for="mb-glc-variant">Príprava alebo variant</label>
+                <select id="mb-glc-variant"></select>
+              </div>
+
+              <div class="mb-glc__field">
+                <label class="mb-glc__label" for="mb-glc-portion">Veľkosť porcie (g)</label>
+                <input id="mb-glc-portion" type="number" inputmode="decimal" min="1" max="2000" step="1">
+              </div>
+
+              <div class="mb-glc__field">
+                <label class="mb-glc__label" for="mb-glc-gi">Reprezentatívny GI a testované rozpätie</label>
+                <input id="mb-glc-gi" type="text" readonly>
+              </div>
+
+              <div class="mb-glc__field">
+                <label class="mb-glc__label" for="mb-glc-carbs100">Dostupné sacharidy na 100 g</label>
+                <input id="mb-glc-carbs100" type="text" readonly>
+              </div>
+            </div>
+
+            <div class="mb-glc__metrics" aria-label="Medzivýsledky">
+              <div class="mb-glc__metric"><span>Dostupné sacharidy v porcii</span><strong id="mb-glc-portion-carbs">–</strong></div>
+              <div class="mb-glc__metric"><span>Odhadované rozpätie GL</span><strong id="mb-glc-gl-range">–</strong></div>
+              <div class="mb-glc__metric"><span>Zadaná porcia</span><strong id="mb-glc-portion-summary">–</strong></div>
+            </div>
+
+            <div class="mb-glc__result" id="mb-glc-food-result" aria-live="polite">
+              <div class="mb-glc__result-top">
+                <div>
+                  <p class="mb-glc__result-label">Glykemická nálož porcie</p>
+                  <p class="mb-glc__result-value" id="mb-glc-food-gl">–</p>
+                </div>
+                <span class="mb-glc__badge mb-glc__badge--low" id="mb-glc-food-badge">Vyberte potravinu</span>
+              </div>
+              <p class="mb-glc__interpretation" id="mb-glc-food-interpretation">Zvoľte potravinu, variant a veľkosť porcie.</p>
+              <div class="mb-glc__details" id="mb-glc-food-details"></div>
+            </div>
+
+            <div class="mb-glc__actions">
+              <button class="mb-glc__button" id="mb-glc-reset-food" type="button">Obnoviť predvolené hodnoty</button>
+            </div>
+          </section>
+
+          <section class="mb-glc__panel" id="mb-glc-panel-manual" role="tabpanel" aria-labelledby="mb-glc-tab-manual" hidden>
+            <div class="mb-glc__grid">
+              <div class="mb-glc__field">
+                <label class="mb-glc__label" for="mb-glc-manual-gi">Glykemický index (GI)</label>
+                <input id="mb-glc-manual-gi" type="number" inputmode="decimal" min="0" max="150" step="0.1" placeholder="Napr. 55">
+                <span class="mb-glc__hint">Použite hodnotu pre konkrétnu potravinu, výrobok a úpravu.</span>
+              </div>
+              <div class="mb-glc__field">
+                <label class="mb-glc__label" for="mb-glc-manual-carbs">Dostupné sacharidy v celej porcii (g)</label>
+                <input id="mb-glc-manual-carbs" type="number" inputmode="decimal" min="0" max="500" step="0.1" placeholder="Napr. 32">
+                <span class="mb-glc__hint">Pri balených výrobkoch vychádzajte z údaja „sacharidy“ a zo skutočnej veľkosti porcie.</span>
+              </div>
+            </div>
+
+            <div class="mb-glc__result" id="mb-glc-manual-result" aria-live="polite">
+              <div class="mb-glc__result-top">
+                <div>
+                  <p class="mb-glc__result-label">Glykemická nálož porcie</p>
+                  <p class="mb-glc__result-value" id="mb-glc-manual-gl">–</p>
+                </div>
+                <span class="mb-glc__badge mb-glc__badge--low" id="mb-glc-manual-badge">Zadajte hodnoty</span>
+              </div>
+              <p class="mb-glc__interpretation" id="mb-glc-manual-interpretation">Výsledok sa zobrazí automaticky.</p>
+              <div class="mb-glc__details" id="mb-glc-manual-details"></div>
+            </div>
+
+            <div class="mb-glc__actions">
+              <button class="mb-glc__button" id="mb-glc-reset-manual" type="button">Vymazať hodnoty</button>
+            </div>
+          </section>
+
+          <div class="mb-glc__warning">
+            <strong>Výsledok je orientačný.</strong> Pri všeobecných názvoch potravín nie je uvedené GI laboratórnym výsledkom každého výrobku, ale reprezentatívnou hodnotou z testovaných variantov. GI sa môže líšiť podľa odrody, značky, zrelosti, receptúry a prípravy. Tuky, bielkoviny, vláknina, kyslosť, poradie jedla, pohyb aj individuálna metabolická reakcia môžu priebeh glykémie zmeniť. Pri zmiešaných jedlách nemožno presnú reakciu určiť jednoduchým súčtom tabuľkových hodnôt.
+          </div>
+          <p class="mb-glc__privacy">Výpočet prebieha iba vo vašom prehliadači. Zadané údaje sa nikam neodosielajú ani neukladajú.</p>
+        </div>
+      </div>`;
+
+    var els = {
+      tabs: Array.prototype.slice.call(container.querySelectorAll("[role=tab]")),
+      panels: Array.prototype.slice.call(container.querySelectorAll("[role=tabpanel]")),
+      search: container.querySelector("#mb-glc-search"),
+      category: container.querySelector("#mb-glc-category"),
+      food: container.querySelector("#mb-glc-food"),
+      variant: container.querySelector("#mb-glc-variant"),
+      portion: container.querySelector("#mb-glc-portion"),
+      gi: container.querySelector("#mb-glc-gi"),
+      carbs100: container.querySelector("#mb-glc-carbs100"),
+      portionCarbs: container.querySelector("#mb-glc-portion-carbs"),
+      glRange: container.querySelector("#mb-glc-gl-range"),
+      portionSummary: container.querySelector("#mb-glc-portion-summary"),
+      foodGl: container.querySelector("#mb-glc-food-gl"),
+      foodBadge: container.querySelector("#mb-glc-food-badge"),
+      foodInterpretation: container.querySelector("#mb-glc-food-interpretation"),
+      foodDetails: container.querySelector("#mb-glc-food-details"),
+      resetFood: container.querySelector("#mb-glc-reset-food"),
+      manualGi: container.querySelector("#mb-glc-manual-gi"),
+      manualCarbs: container.querySelector("#mb-glc-manual-carbs"),
+      manualGl: container.querySelector("#mb-glc-manual-gl"),
+      manualBadge: container.querySelector("#mb-glc-manual-badge"),
+      manualInterpretation: container.querySelector("#mb-glc-manual-interpretation"),
+      manualDetails: container.querySelector("#mb-glc-manual-details"),
+      resetManual: container.querySelector("#mb-glc-reset-manual")
+    };
+
+    var selectedId = "ovesne-vlocky-suche";
+
+    function switchTab(tab) {
+      els.tabs.forEach(function (button) {
+        var active = button === tab;
+        button.setAttribute("aria-selected", String(active));
+        button.tabIndex = active ? 0 : -1;
+      });
+      els.panels.forEach(function (panel) {
+        panel.hidden = panel.id !== tab.getAttribute("aria-controls");
+      });
+    }
+
+    els.tabs.forEach(function (tab, index) {
+      tab.addEventListener("click", function () { switchTab(tab); });
+      tab.addEventListener("keydown", function (event) {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+        event.preventDefault();
+        var direction = event.key === "ArrowRight" ? 1 : -1;
+        var next = (index + direction + els.tabs.length) % els.tabs.length;
+        els.tabs[next].focus();
+        switchTab(els.tabs[next]);
+      });
+    });
+
+    function filteredFoods() {
+      var query = normalize(els.search.value);
+      var category = els.category.value;
+      return FOODS.filter(function (food) {
+        var matchesCategory = !category || food.category === category;
+        var haystack = normalize(food.foodName + " " + food.category + " " + food.preparation);
+        return matchesCategory && (!query || haystack.indexOf(query) !== -1);
+      });
+    }
+
+    function populateCategories() {
+      var current = els.category.value;
+      var categories = uniqueSorted(FOODS.map(function (food) { return food.category; }));
+      els.category.innerHTML = '<option value="">Všetky kategórie</option>' + categories.map(function (category) {
+        return '<option value="' + escapeHtml(category) + '">' + escapeHtml(category) + '</option>';
+      }).join("");
+      if (categories.indexOf(current) !== -1) els.category.value = current;
+    }
+
+    function populateFoods(preferredId) {
+      var matches = filteredFoods();
+      var names = uniqueSorted(matches.map(function (food) { return food.foodName; }));
+      var preferred = FOODS.find(function (food) { return food.id === preferredId; });
+      var preferredName = preferred && names.indexOf(preferred.foodName) !== -1 ? preferred.foodName : "";
+      var currentName = names.indexOf(els.food.value) !== -1 ? els.food.value : "";
+      var nextName = preferredName || currentName || names[0] || "";
+
+      if (!names.length) {
+        els.food.innerHTML = '<option value="">Nenašla sa žiadna potravina</option>';
+        els.food.disabled = true;
+        els.variant.innerHTML = '<option value="">Upravte vyhľadávanie</option>';
+        els.variant.disabled = true;
+        clearFoodResult("Pre zadaný filter sme nenašli žiadnu položku. Skúste kratší názov alebo ručný výpočet.");
+        return;
+      }
+
+      els.food.disabled = false;
+      els.food.innerHTML = names.map(function (name) {
+        return '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + '</option>';
+      }).join("");
+      els.food.value = nextName;
+      populateVariants(preferredId);
+    }
+
+    function populateVariants(preferredId) {
+      var matches = filteredFoods().filter(function (food) { return food.foodName === els.food.value; });
+      var preferred = matches.find(function (food) { return food.id === preferredId; });
+      var current = matches.find(function (food) { return food.id === selectedId; });
+      var next = preferred || current || matches[0];
+
+      if (!next) {
+        els.variant.innerHTML = '<option value="">Nie je dostupný variant</option>';
+        els.variant.disabled = true;
+        clearFoodResult("Vyberte inú potravinu alebo použite ručný výpočet.");
+        return;
+      }
+
+      els.variant.disabled = matches.length <= 1;
+      els.variant.innerHTML = matches.map(function (food) {
+        return '<option value="' + escapeHtml(food.id) + '">' + escapeHtml(food.preparation) + '</option>';
+      }).join("");
+      els.variant.value = next.id;
+      selectFood(next.id, true);
+    }
+
+    function getSelectedFood() {
+      return FOODS.find(function (food) { return food.id === els.variant.value; }) || null;
+    }
+
+    function selectFood(id, resetPortion) {
+      var food = FOODS.find(function (item) { return item.id === id; });
+      if (!food) return;
+      selectedId = food.id;
+      els.gi.value = giDisplay(food);
+      els.carbs100.value = formatNumber(food.carbsPer100g) + " g";
+      if (resetPortion || !parseNumber(els.portion.value)) els.portion.value = food.defaultPortion;
+      calculateFood();
+    }
+
+    function setBadge(element, category) {
+      element.className = "mb-glc__badge mb-glc__badge--" + category.key;
+      element.textContent = category.label;
+    }
+
+    function clearFoodResult(message) {
+      els.gi.value = "";
+      els.carbs100.value = "";
+      els.portionCarbs.textContent = "–";
+      els.glRange.textContent = "–";
+      els.portionSummary.textContent = "–";
+      els.foodGl.textContent = "–";
+      els.foodBadge.className = "mb-glc__badge mb-glc__badge--low";
+      els.foodBadge.textContent = "Bez výsledku";
+      els.foodInterpretation.textContent = message;
+      els.foodDetails.innerHTML = "";
+    }
+
+    function calculateFood() {
+      var food = getSelectedFood();
+      var portion = parseNumber(els.portion.value);
+      if (!food || !Number.isFinite(portion) || portion <= 0) {
+        clearFoodResult("Zadajte platnú veľkosť porcie väčšiu ako 0 g.");
+        return;
+      }
+
+      portion = clamp(portion, 1, 2000);
+      var carbs = food.carbsPer100g * portion / 100;
+      var gl = food.gi * carbs / 100;
+      var glMin = food.giMin * carbs / 100;
+      var glMax = food.giMax * carbs / 100;
+      var category = getCategory(gl);
+
+      els.portionCarbs.textContent = formatNumber(carbs) + " g";
+      els.glRange.textContent = formatRange(glMin, glMax);
+      els.portionSummary.textContent = formatNumber(portion) + " g";
+      els.foodGl.textContent = formatNumber(gl);
+      setBadge(els.foodBadge, category);
+
+      var rangeText = Math.abs(glMax - glMin) < 0.05
+        ? ""
+        : " Pri použití testovaného rozpätie GI vychádza GL približne " + formatRange(glMin, glMax) + ".";
+
+      els.foodInterpretation.textContent =
+        category.text + " Výsledok vychádza z " + formatNumber(carbs) +
+        " g dostupných sacharidov v porcii." + rangeText;
+
+      var giText = food.giMin === food.giMax
+        ? formatNumber(food.gi)
+        : formatNumber(food.gi) + " (testované rozpätie " + formatNumber(food.giMin) + "–" + formatNumber(food.giMax) + ")";
+
+      els.foodDetails.innerHTML =
+        '<p><strong>Výpočet reprezentatívnej GL:</strong> ' + formatNumber(food.gi) + ' × ' + formatNumber(carbs) + ' ÷ 100 = ' + formatNumber(gl) + '</p>' +
+        '<p><strong>GI použité v kalkulačke:</strong> ' + giText + '</p>' +
+        '<p><strong>Variant:</strong> ' + escapeHtml(food.foodName) + ' – ' + escapeHtml(food.preparation) + '</p>' +
+        '<p><strong>Podklad:</strong> ' + escapeHtml(food.evidence) + '</p>' +
+        '<p><strong>Poznámka:</strong> ' + escapeHtml(food.note) + '</p>' +
+        '<p><strong>Zdroje GI:</strong> <a href="' + escapeHtml(food.sourceUrl) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(food.sourceTitle) + '</a> · <a href="' + SOURCE_TABLES_URL + '" target="_blank" rel="noopener noreferrer">systematický prehľad 2021</a></p>' +
+        '<p><strong>Dostupné sacharidy:</strong> typická orientačný hodnota na 100 g. Pri baleného výrobku má prednosť jeho aktuálna etiketa; pri domácího pokrmu konkrétny receptúra.</p>';
+    }
+
+    function calculateManual() {
+      var gi = parseNumber(els.manualGi.value);
+      var carbs = parseNumber(els.manualCarbs.value);
+      if (!Number.isFinite(gi) || !Number.isFinite(carbs) || gi < 0 || carbs < 0) {
+        els.manualGl.textContent = "–";
+        els.manualBadge.className = "mb-glc__badge mb-glc__badge--low";
+        els.manualBadge.textContent = "Zadajte hodnoty";
+        els.manualInterpretation.textContent = "Zadajte platný GI a dostupné sacharidy v celé porcii.";
+        els.manualDetails.innerHTML = "";
+        return;
+      }
+
+      gi = clamp(gi, 0, 150);
+      carbs = clamp(carbs, 0, 500);
+      var gl = gi * carbs / 100;
+      var category = getCategory(gl);
+      els.manualGl.textContent = formatNumber(gl);
+      setBadge(els.manualBadge, category);
+      els.manualInterpretation.textContent = category.text;
+      els.manualDetails.innerHTML =
+        '<p><strong>Výpočet:</strong> ' + formatNumber(gi) + ' × ' + formatNumber(carbs) + ' ÷ 100 = ' + formatNumber(gl) + '</p>' +
+        '<p>Ručný režim je vhodný pre konkrétne výrobky, ktoré nie sú v databáze. Použite GI zodpovedajúci konkrétnemu variantu a sacharidy pre skutočne zjedenú porciu.</p>';
+    }
+
+    els.search.addEventListener("input", function () { populateFoods(selectedId); });
+    els.category.addEventListener("change", function () { populateFoods(selectedId); });
+    els.food.addEventListener("change", function () { populateVariants(); });
+    els.variant.addEventListener("change", function () { selectFood(els.variant.value, true); });
+    els.portion.addEventListener("input", calculateFood);
+    els.manualGi.addEventListener("input", calculateManual);
+    els.manualCarbs.addEventListener("input", calculateManual);
+
+    els.resetFood.addEventListener("click", function () {
+      els.search.value = "";
+      els.category.value = "";
+      populateFoods("ovesne-vlocky-suche");
+    });
+
+    els.resetManual.addEventListener("click", function () {
+      els.manualGi.value = "";
+      els.manualCarbs.value = "";
+      calculateManual();
+      els.manualGi.focus();
+    });
+
+    populateCategories();
+    populateFoods("ovesne-vlocky-suche");
+    calculateManual();
+  }
+
+  function boot() {
+    var container = document.getElementById(CONTAINER_ID);
+    if (!container) return;
+    injectCalculatorStyles();
+    initCalculator(container);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot, { once: true });
+  } else {
+    boot();
+  }
+})();
+
+/* MyBears sjednocená grafická vrstva 2.0 */
+(function () {
+  'use strict';
+  if (typeof document === 'undefined' || document.getElementById('mb-unified-kalkulacka-glykemicke-naloze-styles')) return;
+  var style = document.createElement('style');
+  style.id = 'mb-unified-kalkulacka-glykemicke-naloze-styles';
+  style.textContent = String.raw`/* MyBears unified design layer — Product Guide v1.8 */
+#mb-glycemic-load-calculator{--mb-green:#2dc26b;--mb-green-dark:#198d4b;--mb-green-soft:#f4f8f4;--mb-border:#e5e3dc;--mb-text:#20221f;--mb-muted:#626760;--mb-cream:#faf7ef;--mb-gold:#DBC442;width:100%;max-width:1120px;margin:24px auto 40px!important;color:var(--mb-text);font-family:Arial,Helvetica,sans-serif;line-height:1.55}
+#mb-glycemic-load-calculator *{box-sizing:border-box}.mb-glc{position:relative;border:1px solid var(--mb-border)!important;border-radius:18px!important;background:#fff!important;box-shadow:0 12px 32px rgba(27,35,29,.07)!important}.mb-glc::before{content:"";position:absolute;z-index:5;top:0;left:0;right:0;height:4px;background:var(--mb-gold)}
+.mb-glc__header{padding:34px 38px 26px!important;background:var(--mb-cream)!important;border-bottom:1px solid var(--mb-border)!important}.mb-glc__header h3{color:var(--mb-green)!important;font-size:clamp(25px,3.2vw,30px)!important}.mb-glc__header p{color:#454a45!important}.mb-glc__formula{border-color:#eadfc8!important;background:#fff!important}
+.mb-glc__tabs{padding:22px 38px 0!important}.mb-glc__tab{border-radius:8px!important;border-color:var(--mb-border)!important;color:var(--mb-green-dark)!important}.mb-glc__tab[aria-selected="true"]{background:var(--mb-green)!important;border-color:var(--mb-green)!important;color:#fff!important}
+.mb-glc__body{padding:30px 38px 36px!important}.mb-glc__label{color:#292b28!important;font-size:15px!important}.mb-glc input,.mb-glc select{border-color:#d4d6d1!important;border-radius:8px!important;color:var(--mb-text)!important}.mb-glc input:focus,.mb-glc select:focus,.mb-glc button:focus-visible,.mb-glc a:focus-visible{outline:3px solid rgba(219,196,66,.38)!important;outline-offset:2px!important;border-color:var(--mb-green-dark)!important}
+.mb-glc__metric{border-color:var(--mb-border)!important;border-radius:12px!important;background:#fff!important}.mb-glc__result{border:1px solid #cfe4d5!important;border-radius:16px!important;background:var(--mb-green-soft)!important}.mb-glc__badge{border:1px solid #d7ceb8!important;background:#fff8df!important;color:#75633d!important}.mb-glc__button{min-height:48px!important;padding:12px 24px!important;border:2px solid var(--mb-green)!important;border-radius:8px!important;color:var(--mb-green-dark)!important;background:#fff!important}.mb-glc__warning,.mb-glc__empty{border-color:#eadfc8!important;border-left:4px solid var(--mb-gold)!important;background:var(--mb-cream)!important}
+.mb-glc-cta{border-color:var(--mb-green)!important;background:var(--mb-cream)!important}.mb-glc-cta__button{background:var(--mb-green)!important}.mb-glc-cta__button:hover{background:var(--mb-green-dark)!important}
+@media(max-width:700px){.mb-glc__header,.mb-glc__body{padding-left:20px!important;padding-right:20px!important}.mb-glc__tabs{padding-left:20px!important;padding-right:20px!important}}
+@media(prefers-reduced-motion:reduce){.mb-glc *,.mb-glc *::before,.mb-glc *::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}`;
+  document.head.appendChild(style);
+})();
