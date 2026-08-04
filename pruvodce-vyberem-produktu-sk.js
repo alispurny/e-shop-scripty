@@ -6,7 +6,7 @@
  * INSTALLATION — HOMEPAGE BUILD
  * Load this file once, ideally before </body>. On the Slovak homepage it creates
  * its own container and inserts it before the first product-list module:
- *      <script defer src="https://cdn.jsdelivr.net/gh/USER/REPO@v1.1.0/pruvodce-vyberem-produktu-sk.js"></script>
+ *      <script defer src="https://cdn.jsdelivr.net/gh/alispurny/e-shop-scripty@main/pruvodce-vyberem-produktu-sk.js"></script>
  *
  * A manually placed element is still supported and takes priority:
  *      <div id="mybears-product-guide" data-mybears-product-guide></div>
