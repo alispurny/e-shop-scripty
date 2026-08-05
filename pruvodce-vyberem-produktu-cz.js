@@ -2841,7 +2841,7 @@
                 <h2 class="mbpg__title" id="${this.uid}-title">Pomůžeme vám vybrat vhodný produkt MyBears</h2>
                 <p class="mbpg__lead">Stačí odpovědět na několik krátkých otázek. V průběhu zobrazujeme jen takové možnosti, které skutečně vedou k odpovídajícímu doporučení v katalogu MyBears.</p>
               </div>
-              <div class="mbpg__mini"><strong>Rychlý průvodce</strong>6 přehledné kroky<br>Přibližně 1–2 minuty</div>
+              <div class="mbpg__mini"><strong>Rychlý průvodce</strong>6 přehledných kroků<br>Přibližně 1–2 minuty</div>
             </div>
 
             <div class="mbpg__steps" aria-label="Průběh průvodce">
