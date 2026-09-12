@@ -1,6 +1,6 @@
-/**
+
  * MyBears Product Guide — kompletná samostatná verzia SK
- * Version: 1.8.2-sk
+ * Version: 1.8.3-sk
  * Product URLs verified against mybears.sk: 2026-08-04
  *
  * INSTALLATION — HOMEPAGE BUILD
@@ -32,7 +32,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.8.2-sk';
+  const VERSION = '1.8.3-sk';
   const DATA_VERIFIED_AT = '2026-08-04';
   const ROOT_SELECTOR = '[data-mybears-product-guide], [data-mb-product-guide], #mybears-product-guide';
   const STYLE_ID = 'mbpg-complete-styles-v181-sk';
@@ -3210,19 +3210,79 @@
     return null;
   }
 
-  function findBenefitGroup(scope) {
-    if (!scope?.querySelectorAll) return null;
-    const headings = Array.from(scope.querySelectorAll('h1, h2, h3, h4, strong'));
-    const marker = headings.find((element) => /mybears\s*klub/i.test(element.textContent || ''));
-    if (!marker) return null;
+  function findBenefitGroup(scope = document) {
+    const root = scope?.querySelectorAll ? scope : document;
 
-    let node = marker.parentElement;
-    while (node && node !== scope && node !== document.body) {
-      const text = (node.textContent || '').replace(/\s+/g, ' ').toLowerCase();
-      if ((text.includes('doprava zadarmo') || text.includes('doprava zdarma')) && (text.includes('bio') || text.includes('vegán') || text.includes('vegan'))) return node;
+    const elements = Array.from(
+      root.querySelectorAll(
+        'a, h1, h2, h3, h4, strong, p, span, div, li, section, article'
+      )
+    );
+
+    function normalizedText(element) {
+      return (element?.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    }
+
+    function findSmallest(predicate) {
+      const found = elements.filter((element) =>
+        predicate(normalizedText(element))
+      );
+
+      found.sort(
+        (a, b) =>
+          normalizedText(a).length -
+          normalizedText(b).length
+      );
+
+      return found[0] || null;
+    }
+
+    const benefit1 = findSmallest((text) =>
+      (
+        text.includes('bio') &&
+        text.includes('vegan') &&
+        text.includes('halal') &&
+        text.includes('gmp')
+      ) ||
+      text.includes('kvalita bez kompromisov') ||
+      text.includes('transparentné účinné dávky') ||
+      text.includes('kvalita bez kompromisů') ||
+      text.includes('transparentní účinné dávky')
+    );
+
+    const benefit2 = findSmallest((text) =>
+      text.includes('doprava zadarmo') ||
+      text.includes('laboratórne overujeme') ||
+      text.includes('doprava zdarma') ||
+      text.includes('laboratorně ověřujeme')
+    );
+
+    const benefit3 = findSmallest((text) =>
+      text.includes('mybears klub')
+    );
+
+    if (!benefit1 || !benefit2 || !benefit3) {
+      return null;
+    }
+
+    let node = benefit1;
+
+    while (node && node !== document.body) {
+      if (
+        node.contains(benefit1) &&
+        node.contains(benefit2) &&
+        node.contains(benefit3)
+      ) {
+        return node;
+      }
+
       node = node.parentElement;
     }
-    return marker.closest('section, article, div');
+
+    return null;
   }
 
   function createHomepageRoot() {
@@ -3247,6 +3307,12 @@
       return root;
     }
 
+    const benefitGroup = findBenefitGroup(document);
+    if (benefitGroup?.parentNode) {
+      benefitGroup.parentNode.insertBefore(root, benefitGroup.nextSibling);
+      return root;
+    }
+
     const main = safeQuery(runtimeConfig.homepageMainSelector) || document.body;
     const productModule = findFirstProductModule(main);
     if (productModule?.parentNode) {
@@ -3254,20 +3320,20 @@
       return root;
     }
 
-    const benefitGroup = findBenefitGroup(main);
-    if (benefitGroup?.parentNode) {
-      benefitGroup.parentNode.insertBefore(root, benefitGroup.nextSibling);
-      return root;
-    }
-
     if (main) {
       const firstMeaningful = Array.from(main.children || []).find((element) =>
         !element.matches('script, style, link, noscript')
       );
-      if (firstMeaningful?.nextSibling) main.insertBefore(root, firstMeaningful.nextSibling);
-      else main.appendChild(root);
+
+      if (firstMeaningful?.nextSibling) {
+        main.insertBefore(root, firstMeaningful.nextSibling);
+      } else {
+        main.appendChild(root);
+      }
+
       return root;
     }
+
     return null;
   }
 
