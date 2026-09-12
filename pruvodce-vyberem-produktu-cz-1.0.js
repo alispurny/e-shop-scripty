@@ -3253,11 +3253,11 @@
     return null;
   }
 
-function findBenefitGroup(scope) {
-  if (!scope?.querySelectorAll) return null;
+function findBenefitGroup(scope = document) {
+  const root = scope?.querySelectorAll ? scope : document;
 
   const candidates = Array.from(
-    scope.querySelectorAll('section, article, div')
+    root.querySelectorAll('section, article, div, ul')
   ).filter((node) => {
     const text = (node.textContent || '')
       .replace(/\s+/g, ' ')
@@ -3268,33 +3268,29 @@ function findBenefitGroup(scope) {
       text.includes('bio') &&
       text.includes('vegan');
 
-    const hasQuality =
-      text.includes('kvalita bez kompromisů') ||
-      text.includes('transparentní účinné dávky');
-
-    const hasLab =
-      text.includes('laboratorně ověřujeme');
-
     const hasClub =
       text.includes('mybears klub');
 
+    const hasMiddleBenefit =
+      text.includes('doprava zdarma') ||
+      text.includes('laboratorně ověřujeme');
+
     return (
       hasCertifications &&
-      hasQuality &&
-      hasLab &&
+      hasMiddleBenefit &&
       hasClub
     );
   });
 
   if (!candidates.length) return null;
 
-  // Vybere nejmenší společný wrapper obsahující všechny benefity
   candidates.sort((a, b) =>
-    (a.textContent || '').length - (b.textContent || '').length
+    (a.textContent || '').length -
+    (b.textContent || '').length
   );
 
   return candidates[0];
-}
+}const benefitGroup = findBenefitGroup(document);
   function createHomepageRoot() {
     if (!isConfiguredHomepage()) return null;
     if (document.querySelector(ROOT_SELECTOR)) return null;
@@ -3319,7 +3315,7 @@ function findBenefitGroup(scope) {
 
 const main = safeQuery(runtimeConfig.homepageMainSelector) || document.body;
 
-const benefitGroup = findBenefitGroup(main);
+const benefitGroup = findBenefitGroup(document);
 if (benefitGroup?.parentNode) {
   benefitGroup.parentNode.insertBefore(root, benefitGroup.nextSibling);
   return root;
