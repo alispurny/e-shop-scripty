@@ -3253,21 +3253,56 @@
     return null;
   }
 
-  function findBenefitGroup(scope) {
-    if (!scope?.querySelectorAll) return null;
-    const headings = Array.from(scope.querySelectorAll('h1, h2, h3, h4, strong'));
-    const marker = headings.find((element) => /mybears\s*klub/i.test(element.textContent || ''));
-    if (!marker) return null;
+function findBenefitGroup(scope) {
+  if (!scope?.querySelectorAll) return null;
 
-    let node = marker.parentElement;
-    while (node && node !== scope && node !== document.body) {
-      const text = (node.textContent || '').replace(/\s+/g, ' ').toLowerCase();
-      if (text.includes('doprava zdarma') && (text.includes('bio') || text.includes('vegan'))) return node;
-      node = node.parentElement;
+  const headings = Array.from(
+    scope.querySelectorAll('h1, h2, h3, h4, strong')
+  );
+
+  const marker = headings.find((element) =>
+    /mybears\s*klub/i.test(element.textContent || '')
+  );
+
+  if (!marker) return null;
+
+  let node = marker.parentElement;
+
+  while (node && node !== scope && node !== document.body) {
+    const text = (node.textContent || '')
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+
+    const hasCertifications =
+      text.includes('bio') ||
+      text.includes('vegan') ||
+      text.includes('halal') ||
+      text.includes('gmp');
+
+    const hasQualityBlock =
+      text.includes('kvalita bez kompromisů') ||
+      text.includes('transparentní účinné dávky');
+
+    const hasLabBlock =
+      text.includes('laboratorně ověřujeme');
+
+    const hasClubBlock =
+      text.includes('mybears klub');
+
+    if (
+      hasCertifications &&
+      hasQualityBlock &&
+      hasLabBlock &&
+      hasClubBlock
+    ) {
+      return node;
     }
-    return marker.closest('section, article, div');
+
+    node = node.parentElement;
   }
 
+  return null;
+}
   function createHomepageRoot() {
     if (!isConfiguredHomepage()) return null;
     if (document.querySelector(ROOT_SELECTOR)) return null;
