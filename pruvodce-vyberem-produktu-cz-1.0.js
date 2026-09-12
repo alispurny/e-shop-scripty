@@ -3256,52 +3256,44 @@
 function findBenefitGroup(scope) {
   if (!scope?.querySelectorAll) return null;
 
-  const headings = Array.from(
-    scope.querySelectorAll('h1, h2, h3, h4, strong')
-  );
-
-  const marker = headings.find((element) =>
-    /mybears\s*klub/i.test(element.textContent || '')
-  );
-
-  if (!marker) return null;
-
-  let node = marker.parentElement;
-
-  while (node && node !== scope && node !== document.body) {
+  const candidates = Array.from(
+    scope.querySelectorAll('section, article, div')
+  ).filter((node) => {
     const text = (node.textContent || '')
       .replace(/\s+/g, ' ')
+      .trim()
       .toLowerCase();
 
     const hasCertifications =
-      text.includes('bio') ||
-      text.includes('vegan') ||
-      text.includes('halal') ||
-      text.includes('gmp');
+      text.includes('bio') &&
+      text.includes('vegan');
 
-    const hasQualityBlock =
+    const hasQuality =
       text.includes('kvalita bez kompromisů') ||
       text.includes('transparentní účinné dávky');
 
-    const hasLabBlock =
+    const hasLab =
       text.includes('laboratorně ověřujeme');
 
-    const hasClubBlock =
+    const hasClub =
       text.includes('mybears klub');
 
-    if (
+    return (
       hasCertifications &&
-      hasQualityBlock &&
-      hasLabBlock &&
-      hasClubBlock
-    ) {
-      return node;
-    }
+      hasQuality &&
+      hasLab &&
+      hasClub
+    );
+  });
 
-    node = node.parentElement;
-  }
+  if (!candidates.length) return null;
 
-  return null;
+  // Vybere nejmenší společný wrapper obsahující všechny benefity
+  candidates.sort((a, b) =>
+    (a.textContent || '').length - (b.textContent || '').length
+  );
+
+  return candidates[0];
 }
   function createHomepageRoot() {
     if (!isConfiguredHomepage()) return null;
