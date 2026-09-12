@@ -3425,3 +3425,17 @@ function findBenefitGroup(scope = document) {
   } else {
     boot(document);
   }
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
+    if (node.nodeType === 1) boot(node);
+  }));
+});
+
+if (document.documentElement) {
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true
+  });
+}
+
+})();
