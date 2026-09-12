@@ -1,4 +1,4 @@
-
+/**
  * MyBears Product Guide — kompletná samostatná verzia SK
  * Version: 1.8.3-sk
  * Product URLs verified against mybears.sk: 2026-08-04
