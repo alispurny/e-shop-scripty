@@ -3254,43 +3254,76 @@
   }
 
 function findBenefitGroup(scope = document) {
-  const root = scope?.querySelectorAll ? scope : document;
+    const root = scope?.querySelectorAll ? scope : document;
 
-  const candidates = Array.from(
-    root.querySelectorAll('section, article, div, ul')
-  ).filter((node) => {
-    const text = (node.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
-
-    const hasCertifications =
-      text.includes('bio') &&
-      text.includes('vegan');
-
-    const hasClub =
-      text.includes('mybears klub');
-
-    const hasMiddleBenefit =
-      text.includes('doprava zdarma') ||
-      text.includes('laboratorně ověřujeme');
-
-    return (
-      hasCertifications &&
-      hasMiddleBenefit &&
-      hasClub
+    const elements = Array.from(
+      root.querySelectorAll(
+        'a, h1, h2, h3, h4, strong, p, span, div, li, section, article'
+      )
     );
-  });
 
-  if (!candidates.length) return null;
+    function normalizedText(element) {
+      return (element?.textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
+    }
 
-  candidates.sort((a, b) =>
-    (a.textContent || '').length -
-    (b.textContent || '').length
-  );
+    function findSmallest(predicate) {
+      const found = elements.filter((element) =>
+        predicate(normalizedText(element))
+      );
 
-  return candidates[0];
-}const benefitGroup = findBenefitGroup(document);
+      found.sort(
+        (a, b) =>
+          normalizedText(a).length -
+          normalizedText(b).length
+      );
+
+      return found[0] || null;
+    }
+
+    const benefit1 = findSmallest((text) =>
+      (
+        text.includes('bio') &&
+        text.includes('vegan') &&
+        text.includes('halal') &&
+        text.includes('gmp')
+      ) ||
+      text.includes('kvalita bez kompromisů') ||
+      text.includes('transparentní účinné dávky')
+    );
+
+    const benefit2 = findSmallest((text) =>
+      text.includes('doprava zdarma') ||
+      text.includes('laboratorně ověřujeme')
+    );
+
+    const benefit3 = findSmallest((text) =>
+      text.includes('mybears klub')
+    );
+
+    if (!benefit1 || !benefit2 || !benefit3) {
+      return null;
+    }
+
+    let node = benefit1;
+
+    while (node && node !== document.body) {
+      if (
+        node.contains(benefit1) &&
+        node.contains(benefit2) &&
+        node.contains(benefit3)
+      ) {
+        return node;
+      }
+
+      node = node.parentElement;
+    }
+
+    return null;
+  }
+
   function createHomepageRoot() {
     if (!isConfiguredHomepage()) return null;
     if (document.querySelector(ROOT_SELECTOR)) return null;
@@ -3313,28 +3346,33 @@ function findBenefitGroup(scope = document) {
       return root;
     }
 
-const main = safeQuery(runtimeConfig.homepageMainSelector) || document.body;
+    const benefitGroup = findBenefitGroup(document);
+    if (benefitGroup?.parentNode) {
+      benefitGroup.parentNode.insertBefore(root, benefitGroup.nextSibling);
+      return root;
+    }
 
-const benefitGroup = findBenefitGroup(document);
-if (benefitGroup?.parentNode) {
-  benefitGroup.parentNode.insertBefore(root, benefitGroup.nextSibling);
-  return root;
-}
-
-const productModule = findFirstProductModule(main);
-if (productModule?.parentNode) {
-  productModule.parentNode.insertBefore(root, productModule);
-  return root;
-}
+    const main = safeQuery(runtimeConfig.homepageMainSelector) || document.body;
+    const productModule = findFirstProductModule(main);
+    if (productModule?.parentNode) {
+      productModule.parentNode.insertBefore(root, productModule);
+      return root;
+    }
 
     if (main) {
       const firstMeaningful = Array.from(main.children || []).find((element) =>
         !element.matches('script, style, link, noscript')
       );
-      if (firstMeaningful?.nextSibling) main.insertBefore(root, firstMeaningful.nextSibling);
-      else main.appendChild(root);
+
+      if (firstMeaningful?.nextSibling) {
+        main.insertBefore(root, firstMeaningful.nextSibling);
+      } else {
+        main.appendChild(root);
+      }
+
       return root;
     }
+
     return null;
   }
 
@@ -3387,11 +3425,3 @@ if (productModule?.parentNode) {
   } else {
     boot(document);
   }
-
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
-      if (node.nodeType === 1) boot(node);
-    }));
-  });
-  if (document.documentElement) observer.observe(document.documentElement, { childList: true, subtree: true });
-})();
