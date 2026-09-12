@@ -3249,8 +3249,7 @@
       ) ||
       text.includes('kvalita bez kompromisov') ||
       text.includes('transparentné účinné dávky') ||
-      text.includes('kvalita bez kompromisů') ||
-      text.includes('transparentní účinné dávky')
+      text.includes('kvalita a transparentné zloženie')
     );
 
     const benefit2 = findSmallest((text) =>
