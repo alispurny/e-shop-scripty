@@ -3291,7 +3291,8 @@ function findBenefitGroup(scope = document) {
         text.includes('gmp')
       ) ||
       text.includes('kvalita bez kompromisů') ||
-      text.includes('transparentní účinné dávky')
+      text.includes('transparentní účinné dávky') ||
+      text.includes('kvalita a transparentní složení')
     );
 
     const benefit2 = findSmallest((text) =>
