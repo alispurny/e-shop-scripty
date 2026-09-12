@@ -3325,12 +3325,19 @@ function findBenefitGroup(scope) {
       return root;
     }
 
-    const main = safeQuery(runtimeConfig.homepageMainSelector) || document.body;
-    const productModule = findFirstProductModule(main);
-    if (productModule?.parentNode) {
-      productModule.parentNode.insertBefore(root, productModule);
-      return root;
-    }
+const main = safeQuery(runtimeConfig.homepageMainSelector) || document.body;
+
+const benefitGroup = findBenefitGroup(main);
+if (benefitGroup?.parentNode) {
+  benefitGroup.parentNode.insertBefore(root, benefitGroup.nextSibling);
+  return root;
+}
+
+const productModule = findFirstProductModule(main);
+if (productModule?.parentNode) {
+  productModule.parentNode.insertBefore(root, productModule);
+  return root;
+}
 
     const benefitGroup = findBenefitGroup(main);
     if (benefitGroup?.parentNode) {
