@@ -3339,12 +3339,6 @@ if (productModule?.parentNode) {
   return root;
 }
 
-    const benefitGroup = findBenefitGroup(main);
-    if (benefitGroup?.parentNode) {
-      benefitGroup.parentNode.insertBefore(root, benefitGroup.nextSibling);
-      return root;
-    }
-
     if (main) {
       const firstMeaningful = Array.from(main.children || []).find((element) =>
         !element.matches('script, style, link, noscript')
