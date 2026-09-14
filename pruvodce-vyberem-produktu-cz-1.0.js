@@ -1,6 +1,6 @@
 /**
  * MyBears Product Guide — kompletní samostatná verze CZ
- * Version: 1.8.2-cz
+ * Version: 1.8.3-cz
  * Product data verified against mybears.cz: 2026-07-31
  *
  * INSTALLATION — HOMEPAGE BUILD
@@ -32,10 +32,10 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.8.2-cz';
+  const VERSION = '1.8.3-cz';
   const DATA_VERIFIED_AT = '2026-07-31';
   const ROOT_SELECTOR = '[data-mybears-product-guide], [data-mb-product-guide], #mybears-product-guide';
-  const STYLE_ID = 'mbpg-complete-styles-v182-cz';
+  const STYLE_ID = 'mbpg-complete-styles-v183-cz';
   const instances = new Map();
   const pageCache = new Map();
   let instanceCounter = 0;
@@ -3283,16 +3283,10 @@ function findBenefitGroup(scope = document) {
       return found[0] || null;
     }
 
-    // Homepage benefit block — current 4-card layout:
-    // 1) Kvalitní suroviny
-    // 2) Transparentní složení
-    // 3) Laboratorně ověřujeme
-    // 4) MyBears klub
-    //
-    // The guide must be mounted AFTER the whole benefit block. During homepage
-    // edits it is enough to identify at least two benefit cards, so one missing
-    // or temporarily renamed card does not make the guide jump above the block.
-
+    // Placement anchors are intentionally limited to the three top homepage
+    // benefit cards that are unique to this section. Do NOT use "MyBears klub"
+    // as a global anchor: the phrase also appears lower on the page / in footer
+    // and could make the common ancestor become the whole main content area.
     const quality = findSmallest((text) =>
       text.includes('kvalitní suroviny') ||
       text.includes('kvalitni suroviny') ||
@@ -3302,7 +3296,8 @@ function findBenefitGroup(scope = document) {
         text.includes('halal') &&
         text.includes('gmp')
       ) ||
-      text.includes('kvalita bez kompromisů')
+      text.includes('kvalita bez kompromisů') ||
+      text.includes('kvalita a transparentní složení')
     );
 
     const transparency = findSmallest((text) =>
@@ -3321,26 +3316,21 @@ function findBenefitGroup(scope = document) {
       text.includes('laboratorne testovano')
     );
 
-    const club = findSmallest((text) =>
-      text.includes('mybears klub') ||
-      text.includes('méďabody') ||
-      text.includes('medabody')
-    );
+    const anchors = [quality, transparency, laboratory].filter(Boolean);
 
-    const benefits = [quality, transparency, laboratory, club].filter(Boolean);
-
-    if (benefits.length < 2) {
+    if (anchors.length < 2) {
       return null;
     }
 
-    // Find the smallest common ancestor containing every benefit that was found.
-    let node = benefits[0];
+    // Return the smallest common ancestor of the visible top benefit cards.
+    // This keeps the guide directly below the benefit row even while a fourth
+    // card (MyBears klub) is being added or temporarily missing.
+    let node = anchors[0];
 
     while (node && node !== document.body) {
-      if (benefits.every((benefit) => node.contains(benefit))) {
+      if (anchors.every((anchor) => node.contains(anchor))) {
         return node;
       }
-
       node = node.parentElement;
     }
 
