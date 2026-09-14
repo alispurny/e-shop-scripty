@@ -1,6 +1,6 @@
 /**
  * MyBears Product Guide — kompletní samostatná verze CZ
- * Version: 1.8.1-cz
+ * Version: 1.8.2-cz
  * Product data verified against mybears.cz: 2026-07-31
  *
  * INSTALLATION — HOMEPAGE BUILD
@@ -32,10 +32,10 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.8.1-cz';
+  const VERSION = '1.8.2-cz';
   const DATA_VERIFIED_AT = '2026-07-31';
   const ROOT_SELECTOR = '[data-mybears-product-guide], [data-mb-product-guide], #mybears-product-guide';
-  const STYLE_ID = 'mbpg-complete-styles-v181-cz';
+  const STYLE_ID = 'mbpg-complete-styles-v182-cz';
   const instances = new Map();
   const pageCache = new Map();
   let instanceCounter = 0;
@@ -3283,39 +3283,61 @@ function findBenefitGroup(scope = document) {
       return found[0] || null;
     }
 
-    const benefit1 = findSmallest((text) =>
+    // Homepage benefit block — current 4-card layout:
+    // 1) Kvalitní suroviny
+    // 2) Transparentní složení
+    // 3) Laboratorně ověřujeme
+    // 4) MyBears klub
+    //
+    // The guide must be mounted AFTER the whole benefit block. During homepage
+    // edits it is enough to identify at least two benefit cards, so one missing
+    // or temporarily renamed card does not make the guide jump above the block.
+
+    const quality = findSmallest((text) =>
+      text.includes('kvalitní suroviny') ||
+      text.includes('kvalitni suroviny') ||
       (
         text.includes('bio') &&
         text.includes('vegan') &&
         text.includes('halal') &&
         text.includes('gmp')
       ) ||
-      text.includes('kvalita bez kompromisů') ||
+      text.includes('kvalita bez kompromisů')
+    );
+
+    const transparency = findSmallest((text) =>
+      text.includes('transparentní složení') ||
+      text.includes('transparentni slozeni') ||
+      text.includes('transparentně uvádíme složení') ||
+      text.includes('transparentni uvadime slozeni') ||
       text.includes('transparentní účinné dávky') ||
       text.includes('kvalita a transparentní složení')
     );
 
-    const benefit2 = findSmallest((text) =>
-      text.includes('doprava zdarma') ||
-      text.includes('laboratorně ověřujeme')
+    const laboratory = findSmallest((text) =>
+      text.includes('laboratorně ověřujeme') ||
+      text.includes('laboratorne overujeme') ||
+      text.includes('laboratorně testováno') ||
+      text.includes('laboratorne testovano')
     );
 
-    const benefit3 = findSmallest((text) =>
-      text.includes('mybears klub')
+    const club = findSmallest((text) =>
+      text.includes('mybears klub') ||
+      text.includes('méďabody') ||
+      text.includes('medabody')
     );
 
-    if (!benefit1 || !benefit2 || !benefit3) {
+    const benefits = [quality, transparency, laboratory, club].filter(Boolean);
+
+    if (benefits.length < 2) {
       return null;
     }
 
-    let node = benefit1;
+    // Find the smallest common ancestor containing every benefit that was found.
+    let node = benefits[0];
 
     while (node && node !== document.body) {
-      if (
-        node.contains(benefit1) &&
-        node.contains(benefit2) &&
-        node.contains(benefit3)
-      ) {
+      if (benefits.every((benefit) => node.contains(benefit))) {
         return node;
       }
 
