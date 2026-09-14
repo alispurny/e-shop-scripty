@@ -35,7 +35,7 @@
   const VERSION = '1.8.3-sk';
   const DATA_VERIFIED_AT = '2026-08-04';
   const ROOT_SELECTOR = '[data-mybears-product-guide], [data-mb-product-guide], #mybears-product-guide';
-  const STYLE_ID = 'mbpg-complete-styles-v181-sk';
+  const STYLE_ID = 'mbpg-complete-styles-v183-sk';
   const instances = new Map();
   const pageCache = new Map();
   let instanceCounter = 0;
@@ -3240,7 +3240,15 @@
       return found[0] || null;
     }
 
-    const benefit1 = findSmallest((text) =>
+    // Rovnaká logika ako v CZ verzii 1.8.3:
+    // na umiestnenie sprievodcu používame iba tri jedinečné horné benefity.
+    // "MyBears klub" zámerne nie je globálny anchor, pretože sa môže
+    // objavovať aj nižšie na stránke alebo vo footeri.
+    const quality = findSmallest((text) =>
+      text.includes('kvalitné suroviny') ||
+      text.includes('kvalitne suroviny') ||
+      text.includes('kvalitní suroviny') ||
+      text.includes('kvalitni suroviny') ||
       (
         text.includes('bio') &&
         text.includes('vegan') &&
@@ -3248,36 +3256,51 @@
         text.includes('gmp')
       ) ||
       text.includes('kvalita bez kompromisov') ||
+      text.includes('kvalita bez kompromisů') ||
+      text.includes('kvalita a transparentné zloženie') ||
+      text.includes('kvalita a transparentní složení')
+    );
+
+    const transparency = findSmallest((text) =>
+      text.includes('transparentné zloženie') ||
+      text.includes('transparentne zlozenie') ||
+      text.includes('transparentní složení') ||
+      text.includes('transparentni slozeni') ||
+      text.includes('transparentne uvádzame zloženie') ||
+      text.includes('transparentne uvadzame zlozenie') ||
+      text.includes('transparentně uvádíme složení') ||
+      text.includes('transparentni uvadime slozeni') ||
       text.includes('transparentné účinné dávky') ||
-      text.includes('kvalita a transparentné zloženie')
+      text.includes('transparentne ucinne davky') ||
+      text.includes('transparentní účinné dávky') ||
+      text.includes('kvalita a transparentné zloženie') ||
+      text.includes('kvalita a transparentní složení')
     );
 
-    const benefit2 = findSmallest((text) =>
-      text.includes('doprava zadarmo') ||
+    const laboratory = findSmallest((text) =>
       text.includes('laboratórne overujeme') ||
-      text.includes('doprava zdarma') ||
-      text.includes('laboratorně ověřujeme')
+      text.includes('laboratorne overujeme') ||
+      text.includes('laboratórne testované') ||
+      text.includes('laboratorne testovane') ||
+      text.includes('laboratorně ověřujeme') ||
+      text.includes('laboratorně testováno') ||
+      text.includes('laboratorne testovano')
     );
 
-    const benefit3 = findSmallest((text) =>
-      text.includes('mybears klub')
-    );
+    const anchors = [quality, transparency, laboratory].filter(Boolean);
 
-    if (!benefit1 || !benefit2 || !benefit3) {
+    if (anchors.length < 2) {
       return null;
     }
 
-    let node = benefit1;
+    // Vráti najmenšieho spoločného rodiča horného benefitového bloku.
+    // Sprievodca tak zostane priamo pod benefitmi aj pri úpravách 4. karty.
+    let node = anchors[0];
 
     while (node && node !== document.body) {
-      if (
-        node.contains(benefit1) &&
-        node.contains(benefit2) &&
-        node.contains(benefit3)
-      ) {
+      if (anchors.every((anchor) => node.contains(anchor))) {
         return node;
       }
-
       node = node.parentElement;
     }
 
