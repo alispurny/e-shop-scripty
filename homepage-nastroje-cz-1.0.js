@@ -186,25 +186,25 @@
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
-                    width: 100%;
-                    min-height: 48px;
-                    padding: 12px 18px;
-                    border: 2px solid var(--mb-gold);
-                    border-radius: 8px;
+                    align-self: center;
+                    width: auto;
+                    min-height: 40px;
+                    padding: 10px 20px;
+                    border: 0;
+                    border-radius: 999px;
                     background: var(--mb-gold);
-                    color: #ffffff !important;
+                    color: #111111 !important;
                     font-size: 14px;
                     font-weight: 700;
                     line-height: 1.15;
                     text-align: center;
                     text-decoration: none !important;
-                    transition: background .2s ease, border-color .2s ease, transform .2s ease;
+                    transition: background .2s ease, transform .2s ease;
                 }
 
                 #mybears-smart-tools .mb-tools-button:hover {
                     background: var(--mb-gold-dark);
-                    border-color: var(--mb-gold-dark);
-                    color: #ffffff !important;
+                    color: #111111 !important;
                     transform: translateY(-1px);
                 }
 
@@ -228,16 +228,17 @@
                 }
 
                 #mybears-smart-tools .mb-tools-footer .mb-tools-button {
-                    width: auto;
-                    min-width: 190px;
+                    align-self: auto;
                     flex: 0 0 auto;
-                    border-color: var(--mb-green);
+                    width: auto;
+                    min-width: 0;
                     background: var(--mb-green);
+                    color: #111111 !important;
                 }
 
                 #mybears-smart-tools .mb-tools-footer .mb-tools-button:hover {
-                    border-color: var(--mb-green-dark);
                     background: var(--mb-green-dark);
+                    color: #111111 !important;
                 }
 
                 @media (max-width: 900px) {
@@ -284,8 +285,8 @@
                     }
 
                     #mybears-smart-tools .mb-tools-footer .mb-tools-button {
-                        width: 100%;
-                        min-width: 0;
+                        align-self: center;
+                        width: auto;
                     }
                 }
             `;
