@@ -29,17 +29,22 @@
                 #mybears-smart-tools {
                     --mb-green: #2dc26b;
                     --mb-green-dark: #198d4b;
+                    --mb-gold: #DBC442;
+                    --mb-gold-dark: #bfa91f;
                     --mb-ink: #20221f;
                     --mb-muted: #626760;
-                    --mb-cream: #faf7ef;
-                    --mb-gold: #DBC442;
                     --mb-line: #e5e3dc;
+                    --mb-blue-soft: #f4f7fc;
+                    --mb-gold-soft: #fff9ec;
+                    --mb-green-soft: #f1f8f3;
 
+                    position: relative;
+                    overflow: hidden;
                     max-width: 1120px;
                     margin: clamp(30px, 5vw, 58px) auto;
                     padding: 34px 38px 32px;
-                    background: #f7fbf8;
-                    border: 1px solid #e2eee6;
+                    background: #ffffff;
+                    border: 1px solid var(--mb-line);
                     border-radius: 18px;
                     box-shadow: 0 12px 32px rgba(27, 35, 29, .07);
                     color: var(--mb-ink);
@@ -47,6 +52,16 @@
                     font-family: Arial, Helvetica, sans-serif;
                     line-height: 1.55;
                     box-sizing: border-box;
+                }
+
+                #mybears-smart-tools::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 4px;
+                    background: var(--mb-gold);
                 }
 
                 #mybears-smart-tools * {
@@ -107,12 +122,23 @@
                     flex-direction: column;
                     min-height: 280px;
                     padding: 24px 22px 22px;
-                    background: #ffffff;
                     border: 1px solid var(--mb-line);
                     border-radius: 14px;
                     box-shadow: 0 8px 20px rgba(36, 39, 35, .055);
                     text-align: center;
                     transition: transform .2s ease, box-shadow .2s ease;
+                }
+
+                #mybears-smart-tools .mb-tool-card:nth-child(1) {
+                    background: var(--mb-blue-soft);
+                }
+
+                #mybears-smart-tools .mb-tool-card:nth-child(2) {
+                    background: var(--mb-gold-soft);
+                }
+
+                #mybears-smart-tools .mb-tool-card:nth-child(3) {
+                    background: var(--mb-green-soft);
                 }
 
                 #mybears-smart-tools .mb-tool-card:hover {
@@ -130,7 +156,7 @@
                     border: 1px solid #dce8df;
                     border-radius: 16px;
                     color: #3c704d;
-                    background: linear-gradient(145deg, #f4f7f4, #edf2ee);
+                    background: #ffffff;
                     box-shadow: 0 8px 20px rgba(36, 39, 35, .075);
                 }
 
@@ -163,22 +189,23 @@
                     width: 100%;
                     min-height: 48px;
                     padding: 12px 18px;
-                    border: 2px solid var(--mb-green);
+                    border: 2px solid var(--mb-gold);
                     border-radius: 8px;
-                    background: var(--mb-green);
+                    background: var(--mb-gold);
                     color: #ffffff !important;
                     font-size: 14px;
                     font-weight: 700;
                     line-height: 1.15;
                     text-align: center;
                     text-decoration: none !important;
-                    transition: background .2s ease, border-color .2s ease;
+                    transition: background .2s ease, border-color .2s ease, transform .2s ease;
                 }
 
                 #mybears-smart-tools .mb-tools-button:hover {
-                    background: var(--mb-green-dark);
-                    border-color: var(--mb-green-dark);
+                    background: var(--mb-gold-dark);
+                    border-color: var(--mb-gold-dark);
                     color: #ffffff !important;
+                    transform: translateY(-1px);
                 }
 
                 #mybears-smart-tools .mb-tools-footer {
@@ -187,8 +214,10 @@
                     justify-content: center;
                     gap: 16px;
                     margin-top: 24px;
-                    padding-top: 22px;
-                    border-top: 1px solid #dce8df;
+                    padding: 18px 20px;
+                    border: 1px solid #e3eadf;
+                    border-radius: 14px;
+                    background: #f7fbf8;
                 }
 
                 #mybears-smart-tools .mb-tools-footer p {
@@ -202,6 +231,13 @@
                     width: auto;
                     min-width: 190px;
                     flex: 0 0 auto;
+                    border-color: var(--mb-green);
+                    background: var(--mb-green);
+                }
+
+                #mybears-smart-tools .mb-tools-footer .mb-tools-button:hover {
+                    border-color: var(--mb-green-dark);
+                    background: var(--mb-green-dark);
                 }
 
                 @media (max-width: 900px) {
