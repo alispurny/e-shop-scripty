@@ -1,6 +1,6 @@
 /**
  * MyBears SK — conditional script loader
- * Version: 1.0.0
+ * Version: 1.0.1
  *
  * Cieľ: zachovať súčasnú funkčnosť interaktívnych nástrojov MyBears a pritom
  * nesťahovať všetky skripty na každej stránke.
@@ -11,7 +11,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.0.0-sk';
+  const VERSION = '1.0.1-sk';
   const HOST_SUFFIX = 'mybears.sk';
   const host = String(window.location.hostname || '').toLowerCase();
   if (!host.endsWith(HOST_SUFFIX)) return;
@@ -162,11 +162,12 @@
     const path = normalizePathname();
     const queue = [];
 
-    // Homepage: iba lightweight guide shell + homepage nástroje.
+    // Homepage: lightweight guide shell + homepage nástroje + layout guard.
     if (path === '/') {
       configureProductGuide();
       queue.push('mybears-product-guide-2.0.3-sk.js');
       queue.push('homepage-nastroje-sk-1.1.js');
+      queue.push('homepage-layout-fix-1.0.js');
     }
 
     // Kalkulačky a prevodníky: načítajú sa iba pri existujúcom mount pointe.
