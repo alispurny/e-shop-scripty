@@ -1,6 +1,6 @@
 /**
  * MyBears Product Guide 2.0 — lightweight homepage shell CZ
- * Version: 2.0.2-cz-lazy-shell
+ * Version: 2.0.3-cz-lazy-shell
  *
  * The homepage initially renders only the visual intro.
  * Full catalog/questions/scoring code is loaded after the customer clicks Start.
@@ -8,7 +8,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '2.0.2-cz-lazy-shell';
+  const VERSION = '2.0.3-cz-lazy-shell';
   const ROOT_SELECTOR = '[data-mybears-product-guide], [data-mb-product-guide], #mybears-product-guide, #mybears-product-guide-homepage';
   const SHELL_STYLE_ID = 'mbpg-lazy-shell-styles';
 
@@ -120,13 +120,25 @@
       return root;
     }
 
+    const main = safeQuery(cfg.homepageMainSelector) || document.body;
+    const benefitsSection = safeQuery('.section.lrs.bic-hdln, .bic-hdln');
+    const recommendedSection = safeQuery('.section.lrs.bic-topoffer, .bic-topoffer');
+
+    if (
+      benefitsSection?.parentNode === main &&
+      recommendedSection?.parentNode === main
+    ) {
+      main.insertBefore(recommendedSection, benefitsSection.nextSibling);
+      main.insertBefore(root, recommendedSection.nextSibling);
+      return root;
+    }
+
     const benefitGroup = findBenefitGroup(document);
     if (benefitGroup?.parentNode) {
       benefitGroup.parentNode.insertBefore(root, benefitGroup.nextSibling);
       return root;
     }
 
-    const main = safeQuery(cfg.homepageMainSelector) || document.body;
     main.appendChild(root);
     return root;
   }
