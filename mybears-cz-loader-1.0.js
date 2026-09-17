@@ -1,6 +1,6 @@
 /**
  * MyBears CZ — conditional script loader
- * Version: 1.0.1
+ * Version: 1.0.2
  *
  * Goal: keep the current functionality of MyBears interactive tools while
  * avoiding downloading every tool on every page.
@@ -11,7 +11,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.0.1-cz';
+  const VERSION = '1.0.2-cz';
   const HOST_SUFFIX = 'mybears.cz';
   const host = String(window.location.hostname || '').toLowerCase();
   if (!host.endsWith(HOST_SUFFIX)) return;
@@ -82,6 +82,13 @@
       allProductsUrl: '/',
       autoMountHomepage: true,
       homepagePathnames: ['/']
+    });
+
+    // The lightweight homepage shell supports an explicit mount anchor.
+    // Always create the guide after the complete Recommended block so it never
+    // falls back to the benefits/icons section when Upgates changes wrappers.
+    mergeConfig('MBPG_LAZY_CONFIG', {
+      homepageInsertAfterSelector: '.bic-topoffer'
     });
   }
 
