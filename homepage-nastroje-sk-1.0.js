@@ -1,61 +1,13 @@
 (function () {
     'use strict';
 
-    function isSlovakHomepage() {
-        return (
-            window.location.pathname === '/' &&
-            window.location.hostname.endsWith('mybears.sk')
-        );
-    }
-
-    function findMain() {
-        return document.querySelector('main.lrs.bic-hp.bg') ||
-            document.querySelector('main, [role="main"], #content, .content, .main') ||
-            document.body;
-    }
-
-    function arrangeHomepageSections() {
-        if (!isSlovakHomepage()) return false;
-
-        const main = findMain();
-        if (!main) return false;
-
-        const benefitsSection = main.querySelector('.section.lrs.bic-hdln, .bic-hdln');
-        const recommendedSection = main.querySelector('.section.lrs.bic-topoffer, .bic-topoffer');
-
-        if (
-            benefitsSection &&
-            recommendedSection &&
-            benefitsSection.parentNode === main &&
-            recommendedSection.parentNode === main &&
-            benefitsSection.nextElementSibling !== recommendedSection
-        ) {
-            main.insertBefore(recommendedSection, benefitsSection.nextSibling);
-        }
-
-        const guide = document.getElementById('mybears-product-guide-homepage') ||
-            document.querySelector('[data-mybears-product-guide][data-mbpg-auto="homepage"]');
-
-        if (
-            guide &&
-            recommendedSection &&
-            recommendedSection.parentNode === main &&
-            guide !== recommendedSection.nextElementSibling
-        ) {
-            main.insertBefore(guide, recommendedSection.nextSibling);
-        }
-
-        return Boolean(
-            benefitsSection &&
-            recommendedSection &&
-            benefitsSection.nextElementSibling === recommendedSection &&
-            guide &&
-            recommendedSection.nextElementSibling === guide
-        );
-    }
-
     function initMyBearsHomepageTools() {
-        if (!isSlovakHomepage()) return;
+        if (
+            window.location.pathname !== '/' ||
+            !window.location.hostname.endsWith('mybears.sk')
+        ) {
+            return;
+        }
 
         if (document.getElementById('mybears-smart-tools')) {
             return;
@@ -426,34 +378,9 @@
         philosophySection.insertAdjacentHTML('afterend', toolsHtml);
     }
 
-    function initHomepage() {
-        if (!isSlovakHomepage()) return;
-
-        arrangeHomepageSections();
-        initMyBearsHomepageTools();
-
-        const observer = new MutationObserver(function () {
-            const layoutReady = arrangeHomepageSections();
-            initMyBearsHomepageTools();
-
-            if (layoutReady && document.getElementById('mybears-smart-tools')) {
-                observer.disconnect();
-            }
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-
-        window.setTimeout(function () {
-            observer.disconnect();
-        }, 20000);
-    }
-
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initHomepage, { once: true });
+        document.addEventListener('DOMContentLoaded', initMyBearsHomepageTools, { once: true });
     } else {
-        initHomepage();
+        initMyBearsHomepageTools();
     }
 })();
