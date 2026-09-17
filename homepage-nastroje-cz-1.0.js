@@ -375,7 +375,7 @@ if (!philosophySection) {
             </section>
         `;
 
-        targetHeading.insertAdjacentHTML('beforebegin', toolsHtml);
+philosophySection.insertAdjacentHTML('afterend', toolsHtml);
     }
 
     if (document.readyState === 'loading') {
