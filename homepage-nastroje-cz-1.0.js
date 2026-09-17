@@ -14,13 +14,20 @@
         }
 
         const targetHeading = Array.from(document.querySelectorAll('h1')).find(function (heading) {
-            return heading.textContent.trim() === 'Doplňky, které chceme sami užívat';
-        });
+    return heading.textContent.trim() === 'Doplňky, které chceme sami užívat';
+});
 
-        if (!targetHeading) {
-            console.warn('MyBears: H1 pro vložení bloku nástrojů nebyl nalezen.');
-            return;
-        }
+if (!targetHeading) {
+    console.warn('MyBears: H1 sekce filozofie nebyl nalezen.');
+    return;
+}
+
+const philosophySection = targetHeading.closest('.bic-hptxt');
+
+if (!philosophySection) {
+    console.warn('MyBears: Sekce filozofie .bic-hptxt nebyla nalezena.');
+    return;
+}
 
         if (!document.getElementById('mybears-smart-tools-styles')) {
             const style = document.createElement('style');
