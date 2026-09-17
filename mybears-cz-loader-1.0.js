@@ -1,6 +1,6 @@
 /**
  * MyBears CZ — conditional script loader
- * Version: 1.0.0
+ * Version: 1.0.1
  *
  * Goal: keep the current functionality of MyBears interactive tools while
  * avoiding downloading every tool on every page.
@@ -11,7 +11,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.0.0-cz';
+  const VERSION = '1.0.1-cz';
   const HOST_SUFFIX = 'mybears.cz';
   const host = String(window.location.hostname || '').toLowerCase();
   if (!host.endsWith(HOST_SUFFIX)) return;
@@ -162,11 +162,12 @@
     const path = normalizePathname();
     const queue = [];
 
-    // Homepage: only the lightweight guide shell + homepage tools.
+    // Homepage: only the lightweight guide shell + homepage tools + layout guard.
     if (path === '/') {
       configureProductGuide();
       queue.push('mybears-product-guide-2.0-cz.js');
       queue.push('homepage-nastroje-cz-1.0.js');
+      queue.push('homepage-layout-fix-1.0.js');
     }
 
     // Calculators/converters: load only when their existing mount point is present.
