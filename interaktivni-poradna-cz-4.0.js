@@ -260,7 +260,7 @@
     enableTableOfContents: true,
     enableRelatedArticles: true,
     enableReadingPosition: false,
-    analytics: false,
+    analytics: true,
     debug: false,
     articleContentSelectors: [
       'main .article-detail',
@@ -568,7 +568,7 @@
 
   function emit(eventName, data) {
     if (!CONFIG.analytics || !window.dataLayer || !Array.isArray(window.dataLayer)) return;
-    window.dataLayer.push(Object.assign({ event: eventName, component: 'mybears_interactive_advice' }, data || {}));
+    window.dataLayer.push(Object.assign({ event: eventName, component: 'mybears_interactive_advice' }, data && typeof data.article_count === 'number' ? { article_count: data.article_count } : {}));
   }
 
   function safeImageUrl(img) {
@@ -968,7 +968,7 @@
         updateStateHash(state);
         renderResults();
         if (shouldScroll) scrollToResultsOnMobile();
-        emit('mbia_search_submit', { query: state.query });
+        emit('poradna_hledani', { query: state.query });
       }
 
       query.addEventListener('input', function () {
@@ -1015,7 +1015,7 @@
           state.visible = Math.max(6, Number(CONFIG.articlesPerPage) || 12);
           updateStateHash(state);
           renderControls();
-          emit('mbia_topic_select');
+          emit('poradna_vyber_tematu');
         });
       });
       body.querySelectorAll('[data-series]').forEach(function (button) {
@@ -1027,7 +1027,7 @@
           updateStateHash(state);
           renderControls();
           body.querySelector('[data-role="results"]').scrollIntoView({ behavior: 'smooth', block: 'start' });
-          emit('mbia_series_open');
+          emit('poradna_otevreni_serie');
         });
       });
     }
@@ -1087,7 +1087,7 @@
         renderResults();
       });
       container.querySelectorAll('.mbia__card-title a,.mbia__btn--primary').forEach(function (link) {
-        link.addEventListener('click', function () { emit('mbia_article_click'); });
+        link.addEventListener('click', function () { emit('poradna_klik_na_clanek'); });
       });
       setupMetadataHydration(visible);
     }
@@ -1096,7 +1096,7 @@
       state.articles = articles;
       state.loading = false;
       renderControls();
-      emit('mbia_hub_loaded', { article_count: articles.length });
+      emit('poradna_otevreni', { article_count: articles.length });
     }).catch(function (error) {
       log(error);
       body.innerHTML = '<div class="mbia__error"><h3 class="mbia__error-title">Články se nepodařilo načíst</h3><p>Otevřete prosím přímo <a href="' + escapeHtml(CONFIG.advisorIndexUrl) + '">blog MyBears</a>.</p></div>';
@@ -1244,7 +1244,7 @@
     installTableOfContents(content);
     installReadingPosition(content);
     installRelatedArticles(content);
-    emit('mbia_article_enhanced');
+    emit('poradna_nacteni_clanku');
   }
 
   function init() {

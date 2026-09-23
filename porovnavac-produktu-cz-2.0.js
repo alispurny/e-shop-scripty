@@ -114,7 +114,7 @@
     enableLiveProductData: true,
     enableAddToCart: true,
     enableShareLink: true,
-    analytics: false,
+    analytics: true,
     initialProducts: [],
     scrollOffset: 24,
     debug: false
@@ -315,9 +315,9 @@
     try { history.replaceState(null,'',base+hash); } catch (e) {}
   }
 
-  function emit(eventName) {
+  function emit(eventName, detail) {
     if (!CONFIG.analytics || !window.dataLayer || !Array.isArray(window.dataLayer)) return;
-    window.dataLayer.push({event:eventName,component:'mybears_product_comparison'});
+    window.dataLayer.push(Object.assign({event:eventName,component:'mybears_product_comparison'},detail||{}));
   }
 
   function createApp(root) {
@@ -363,6 +363,8 @@
       if (message) window.setTimeout(function () { if (state.status===message) { state.status=''; renderTray(); } },3500);
     }
 
+    let analyticsStarted = false;
+    function startAnalytics(){if(analyticsStarted)return;analyticsStarted=true;emit('porovnavac_zahajeni');}
     function toggleProduct(id) {
       const index=state.selected.indexOf(id);
       if (index!==-1) state.selected.splice(index,1);
@@ -371,6 +373,8 @@
         state.selected.push(id);
         hydrate(id);
       }
+      startAnalytics();
+      emit(index!==-1?'porovnavac_odebrani_produktu':'porovnavac_pridani_produktu',{product_id:id,selected_count:state.selected.length});
       state.comparisonVisible=state.selected.length>=2 && state.comparisonVisible;
       updateHash(state.selected);
       render();
@@ -385,7 +389,7 @@
       state.selected.forEach(hydrate);
       render();
       window.setTimeout(scrollToComparison,20);
-      emit('mb_compare_preset');
+      startAnalytics();emit('porovnavac_vyber_kombinace',{preset_id:id,selected_count:state.selected.length});
     }
 
     function clearFilters() { state.query='';state.category='Vše';state.goal='Vše';state.feature='Vše';state.visibleCount=12;render(); }
@@ -417,7 +421,7 @@
       state.selected.forEach(hydrate);
       renderComparison();
       window.setTimeout(scrollToComparison,20);
-      emit('mb_compare_complete');
+      startAnalytics();emit('porovnavac_dokonceni',{selected_count:state.selected.length});
     }
 
     function productTags(p) {
@@ -606,8 +610,8 @@
       else if (action==='compare') showComparison();
       else if (action==='share') copyShareLink();
       else if (action==='print') window.print();
-      else if (action==='add-cart') emit('mb_compare_add_to_cart');
-      else if (action==='product-link') emit('mb_compare_product_click');
+      else if (action==='add-cart') emit('porovnavac_klik_vlozit_do_kosiku',{product_id:target.getAttribute('data-id')});
+      else if (action==='product-link') emit('porovnavac_klik_na_produkt',{product_id:target.getAttribute('data-id')});
     });
 
     app.addEventListener('change',function(e){
@@ -620,6 +624,7 @@
 
     state.selected.forEach(hydrate);
     render();
+    emit('porovnavac_otevreni');
   }
 
   function mount() {

@@ -24,6 +24,38 @@
 
   const loaded = new Map();
 
+  const TOOL_NAMES = Object.freeze({
+    '#mb-glycemic-load-calculator': "Kalkulačka glykemickej nálože",
+    '#mb-bmi-calculator': "BMI kalkulačka",
+    '#mb-bmr-calculator': "Kalkulačka bazálneho metabolizmu",
+    '#mb-calorie-macro-calculator': "Kalkulačka kalórií a makroživín",
+    '#mb-hydration-electrolyte-calculator': "Kalkulačka pitného režimu a elektrolytov",
+    '#mb-activity-calorie-calculator': "Kalkulačka výdaja energie pri aktivite",
+    '#mb-energy-availability-calculator': "Kalkulačka energetickej dostupnosti",
+    '#mb-protein-intake-calculator': "Kalkulačka denného príjmu bielkovín",
+    '#mb-waist-height-calculator': "Kalkulačka pomeru pásu k výške",
+    '#mb-hba1c-converter': "Prevodník HbA1c a priemernej glykémie",
+    '#mb-lipid-converter': "Prevodník krvných lipidov",
+    '#mb-caffeine-intake-calculator': "Kalkulačka denného príjmu kofeínu",
+    '#mb-fiber-intake-calculator': "Kalkulačka denného príjmu vlákniny"
+  });
+
+  // Anonymous tool usage only: never capture calculator values or user-entered text.
+  // GTM must separately require analytics_storage consent before sending to GA4.
+  function trackCalculator(tool) {
+    const root = document.querySelector(tool.selector);
+    if (!root || root.__mybearsAnalyticsTracked) return;
+    root.__mybearsAnalyticsTracked = true;
+    const toolId = tool.file.replace(/\.js$/, '');
+    function track(eventName) {
+      if (window.MYBEARS_TOOLS_ANALYTICS_ENABLED === false || !Array.isArray(window.dataLayer)) return;
+      window.dataLayer.push({ event: eventName, component: 'mybears_calculator', tool_id: toolId, tool_name: TOOL_NAMES[tool.selector] || toolId });
+    }
+    track('kalkulacka_otevreni');
+    root.addEventListener('submit', function () { track('kalkulacka_odeslani_pokus'); }, true);
+  }
+
+
   function normalizePathname() {
     const path = String(window.location.pathname || '/').replace(/\/{2,}/g, '/');
     return path.length > 1 ? path.replace(/\/$/, '') : '/';
@@ -73,7 +105,7 @@
 
   function configureProductGuide() {
     mergeConfig('MBPG_CONFIG', {
-      analytics: false,
+      analytics: true,
       maxResults: 3,
       minimumGoalScore: 30,
       enableLiveHydration: true,
@@ -87,6 +119,7 @@
 
   function configureOverlapChecker() {
     mergeConfig('MBOC_CONFIG', {
+      analytics: true,
       siteOrigin: null,
       enableLiveProductData: true,
       initialProfile: 'adult',
@@ -101,7 +134,7 @@
       enableLiveProductData: true,
       enableAddToCart: true,
       enableShareLink: true,
-      analytics: false,
+      analytics: true,
       initialProducts: [],
       debug: false
     });
@@ -119,7 +152,7 @@
       productNote: 'Vlastní balíček MyBears',
       discountTiers: [],
       couponCode: '',
-      analytics: false,
+      analytics: true,
       debug: false
     });
   }
@@ -137,7 +170,7 @@
       enableTableOfContents: true,
       enableRelatedArticles: true,
       enableReadingPosition: false,
-      analytics: false,
+      analytics: true,
       debug: false
     });
   }
@@ -172,7 +205,10 @@
 
     // Kalkulačky a prevodníky: načítajú sa iba pri existujúcom mount pointe.
     tools.forEach(function (tool) {
-      if (has(tool.selector)) queue.push(tool.file);
+      if (has(tool.selector)) {
+        trackCalculator(tool);
+        queue.push(tool.file);
+      }
     });
 
     // Kontrola prekrytia účinných látok.
