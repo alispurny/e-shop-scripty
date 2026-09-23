@@ -25,8 +25,8 @@
   const loaded = new Map();
 
   const TOOL_NAMES = Object.freeze({
-    '#mb-glycemic-load-calculator': "BMI kalkulačka",
-    '#mb-bmi-calculator': "Kalkulačka glykemickej nálože",
+    '#mb-glycemic-load-calculator': "Kalkulačka glykemickej nálože",
+    '#mb-bmi-calculator': "BMI kalkulačka",
     '#mb-bmr-calculator': "Kalkulačka bazálneho metabolizmu",
     '#mb-calorie-macro-calculator': "Kalkulačka kalórií a makroživín",
     '#mb-hydration-electrolyte-calculator': "Kalkulačka pitného režimu a elektrolytov",
