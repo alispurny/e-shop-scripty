@@ -32,6 +32,7 @@
     siteOrigin: null,
     enableLiveProductData: true,
     initialProfile: 'adult',
+    analytics: true,
     debug: false,
     scrollOffset: 24
   });
@@ -257,6 +258,10 @@
     };
   }
 
+  function emit(eventName, detail) {
+    if (!CONFIG.analytics || !Array.isArray(window.dataLayer)) return;
+    window.dataLayer.push(Object.assign({event:eventName,component:'mybears_overlap_checker'},detail||{}));
+  }
   function createApp(root) {
     instanceNo += 1;
     const uid = 'mboc-' + instanceNo;
@@ -296,6 +301,8 @@
       render();
     }
 
+    let analyticsStarted = false;
+    function startAnalytics(){if(analyticsStarted)return;analyticsStarted=true;emit('mb_overlap_start');}
     function toggleProduct(id) {
       if (state.selected.has(id)) state.selected.delete(id);
       else {
@@ -304,6 +311,8 @@
         state.selected.set(id, defaultDoseId(product));
         hydrateProduct(product);
       }
+      startAnalytics();
+      emit('mb_overlap_product_toggle',{product_id:id,selected_count:state.selected.size});
       render();
     }
 
@@ -317,6 +326,8 @@
           hydrateProduct(product);
         }
       });
+      startAnalytics();
+      emit('mb_overlap_preset',{preset_id:id,selected_count:state.selected.size});
       render();
       const panel = root.querySelector('.mboc__selection');
       if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -325,6 +336,7 @@
     function setDose(productId, doseId) {
       if (!state.selected.has(productId)) return;
       state.selected.set(productId, doseId);
+      emit('mb_overlap_dose_change',{product_id:productId});
       renderResultsOnly();
     }
 
@@ -442,6 +454,7 @@
     });
 
     render();
+    emit('mb_overlap_view');
     return { state: state, calculate: function () { return calculateSelection(state.selected, state.profile); }, reset: reset };
   }
 
