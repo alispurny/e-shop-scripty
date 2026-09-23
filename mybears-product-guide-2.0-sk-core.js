@@ -2687,7 +2687,7 @@
     const safeDetail = Object.assign({ version: VERSION }, detail || {});
     root.dispatchEvent(new CustomEvent(`mbpg:${name}`, { bubbles: true, detail: safeDetail }));
     if (runtimeConfig.analytics && Array.isArray(window.dataLayer)) {
-      window.dataLayer.push(Object.assign({ event: `mbpg_${name}`, mbpg_version: VERSION }, safeDetail));
+      window.dataLayer.push(Object.assign({ event: ({ start: 'pruvodce_zahajeni', complete: 'pruvodce_dokonceni', product_click: 'pruvodce_klik_na_produkt', add_to_cart: 'pruvodce_klik_vlozit_do_kosiku' })[name] || `pruvodce_${name}`, mbpg_version: VERSION }, safeDetail));
     }
   }
 
