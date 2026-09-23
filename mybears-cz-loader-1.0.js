@@ -24,6 +24,22 @@
 
   const loaded = new Map();
 
+  // Anonymous tool usage only: never capture calculator values or user-entered text.
+  // GTM must separately require analytics_storage consent before sending to GA4.
+  function trackCalculator(tool) {
+    const root = document.querySelector(tool.selector);
+    if (!root || root.__mybearsAnalyticsTracked) return;
+    root.__mybearsAnalyticsTracked = true;
+    const toolId = tool.file.replace(/\.js$/, '');
+    function track(eventName) {
+      if (window.MYBEARS_TOOLS_ANALYTICS_ENABLED === false || !Array.isArray(window.dataLayer)) return;
+      window.dataLayer.push({ event: eventName, component: 'mybears_calculator', tool_id: toolId });
+    }
+    track('mb_tool_view');
+    root.addEventListener('submit', function () { track('mb_tool_submit'); }, true);
+  }
+
+
   function normalizePathname() {
     const path = String(window.location.pathname || '/').replace(/\/{2,}/g, '/');
     return path.length > 1 ? path.replace(/\/$/, '') : '/';
@@ -73,7 +89,7 @@
 
   function configureProductGuide() {
     mergeConfig('MBPG_CONFIG', {
-      analytics: false,
+      analytics: true,
       maxResults: 3,
       minimumGoalScore: 30,
       enableLiveHydration: true,
@@ -94,6 +110,7 @@
 
   function configureOverlapChecker() {
     mergeConfig('MBOC_CONFIG', {
+      analytics: true,
       siteOrigin: null,
       enableLiveProductData: true,
       initialProfile: 'adult',
@@ -108,7 +125,7 @@
       enableLiveProductData: true,
       enableAddToCart: true,
       enableShareLink: true,
-      analytics: false,
+      analytics: true,
       initialProducts: [],
       debug: false
     });
@@ -126,7 +143,7 @@
       productNote: 'Vlastní balíček MyBears',
       discountTiers: [],
       couponCode: '',
-      analytics: false,
+      analytics: true,
       debug: false
     });
   }
@@ -144,7 +161,7 @@
       enableTableOfContents: true,
       enableRelatedArticles: true,
       enableReadingPosition: false,
-      analytics: false,
+      analytics: true,
       debug: false
     });
   }
@@ -179,7 +196,10 @@
 
     // Calculators/converters: load only when their existing mount point is present.
     tools.forEach(function (tool) {
-      if (has(tool.selector)) queue.push(tool.file);
+      if (has(tool.selector)) {
+        trackCalculator(tool);
+        queue.push(tool.file);
+      }
     });
 
     // Product overlap checker.
