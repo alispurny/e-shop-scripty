@@ -260,7 +260,7 @@
     enableTableOfContents: true,
     enableRelatedArticles: true,
     enableReadingPosition: false,
-    analytics: false,
+    analytics: true,
     debug: false,
     articleContentSelectors: [
       'main .article-detail',
@@ -568,7 +568,7 @@
 
   function emit(eventName, data) {
     if (!CONFIG.analytics || !window.dataLayer || !Array.isArray(window.dataLayer)) return;
-    window.dataLayer.push(Object.assign({ event: eventName, component: 'mybears_interactive_advice' }, data || {}));
+    window.dataLayer.push(Object.assign({ event: eventName, component: 'mybears_interactive_advice' }, data && typeof data.article_count === 'number' ? { article_count: data.article_count } : {}));
   }
 
   function safeImageUrl(img) {
