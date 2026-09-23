@@ -364,7 +364,7 @@
     }
 
     let analyticsStarted = false;
-    function startAnalytics(){if(analyticsStarted)return;analyticsStarted=true;emit('mb_compare_start');}
+    function startAnalytics(){if(analyticsStarted)return;analyticsStarted=true;emit('porovnavac_zahajeni');}
     function toggleProduct(id) {
       const index=state.selected.indexOf(id);
       if (index!==-1) state.selected.splice(index,1);
@@ -374,7 +374,7 @@
         hydrate(id);
       }
       startAnalytics();
-      emit(index!==-1?'mb_compare_product_remove':'mb_compare_product_select',{product_id:id,selected_count:state.selected.length});
+      emit(index!==-1?'porovnavac_odebrani_produktu':'porovnavac_pridani_produktu',{product_id:id,selected_count:state.selected.length});
       state.comparisonVisible=state.selected.length>=2 && state.comparisonVisible;
       updateHash(state.selected);
       render();
@@ -389,7 +389,7 @@
       state.selected.forEach(hydrate);
       render();
       window.setTimeout(scrollToComparison,20);
-      startAnalytics();emit('mb_compare_preset',{preset_id:id,selected_count:state.selected.length});
+      startAnalytics();emit('porovnavac_vyber_kombinace',{preset_id:id,selected_count:state.selected.length});
     }
 
     function clearFilters() { state.query='';state.category='Vše';state.goal='Vše';state.feature='Vše';state.visibleCount=12;render(); }
@@ -421,7 +421,7 @@
       state.selected.forEach(hydrate);
       renderComparison();
       window.setTimeout(scrollToComparison,20);
-      startAnalytics();emit('mb_compare_complete',{selected_count:state.selected.length});
+      startAnalytics();emit('porovnavac_dokonceni',{selected_count:state.selected.length});
     }
 
     function productTags(p) {
@@ -610,8 +610,8 @@
       else if (action==='compare') showComparison();
       else if (action==='share') copyShareLink();
       else if (action==='print') window.print();
-      else if (action==='add-cart') emit('mb_compare_add_to_cart',{product_id:target.getAttribute('data-id')});
-      else if (action==='product-link') emit('mb_compare_product_click',{product_id:target.getAttribute('data-id')});
+      else if (action==='add-cart') emit('porovnavac_klik_vlozit_do_kosiku',{product_id:target.getAttribute('data-id')});
+      else if (action==='product-link') emit('porovnavac_klik_na_produkt',{product_id:target.getAttribute('data-id')});
     });
 
     app.addEventListener('change',function(e){
@@ -624,7 +624,7 @@
 
     state.selected.forEach(hydrate);
     render();
-    emit('mb_compare_view');
+    emit('porovnavac_otevreni');
   }
 
   function mount() {
