@@ -302,7 +302,7 @@
     }
 
     let analyticsStarted = false;
-    function startAnalytics(){if(analyticsStarted)return;analyticsStarted=true;emit('mb_overlap_start');}
+    function startAnalytics(){if(analyticsStarted)return;analyticsStarted=true;emit('prekryvy_zahajeni');}
     function toggleProduct(id) {
       if (state.selected.has(id)) state.selected.delete(id);
       else {
@@ -312,7 +312,7 @@
         hydrateProduct(product);
       }
       startAnalytics();
-      emit('mb_overlap_product_toggle',{product_id:id,selected_count:state.selected.size});
+      emit('prekryvy_zmena_vyberu',{product_id:id,selected_count:state.selected.size});
       render();
     }
 
@@ -327,7 +327,7 @@
         }
       });
       startAnalytics();
-      emit('mb_overlap_preset',{preset_id:id,selected_count:state.selected.size});
+      emit('prekryvy_vyber_kombinace',{preset_id:id,selected_count:state.selected.size});
       render();
       const panel = root.querySelector('.mboc__selection');
       if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -336,7 +336,7 @@
     function setDose(productId, doseId) {
       if (!state.selected.has(productId)) return;
       state.selected.set(productId, doseId);
-      emit('mb_overlap_dose_change',{product_id:productId});
+      emit('prekryvy_zmena_davky',{product_id:productId});
       renderResultsOnly();
     }
 
@@ -454,7 +454,7 @@
     });
 
     render();
-    emit('mb_overlap_view');
+    emit('prekryvy_otevreni');
     return { state: state, calculate: function () { return calculateSelection(state.selected, state.profile); }, reset: reset };
   }
 
