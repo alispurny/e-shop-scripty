@@ -24,6 +24,22 @@
 
   const loaded = new Map();
 
+  const TOOL_NAMES = Object.freeze({
+    '#mb-glycemic-load-calculator': "BMI kalkulačka",
+    '#mb-bmi-calculator': "Kalkulačka glykemickej nálože",
+    '#mb-bmr-calculator': "Kalkulačka bazálneho metabolizmu",
+    '#mb-calorie-macro-calculator': "Kalkulačka kalórií a makroživín",
+    '#mb-hydration-electrolyte-calculator': "Kalkulačka pitného režimu a elektrolytov",
+    '#mb-activity-calorie-calculator': "Kalkulačka výdaja energie pri aktivite",
+    '#mb-energy-availability-calculator': "Kalkulačka energetickej dostupnosti",
+    '#mb-protein-intake-calculator': "Kalkulačka denného príjmu bielkovín",
+    '#mb-waist-height-calculator': "Kalkulačka pomeru pásu k výške",
+    '#mb-hba1c-converter': "Prevodník HbA1c a priemernej glykémie",
+    '#mb-lipid-converter': "Prevodník krvných lipidov",
+    '#mb-caffeine-intake-calculator': "Kalkulačka denného príjmu kofeínu",
+    '#mb-fiber-intake-calculator': "Kalkulačka denného príjmu vlákniny"
+  });
+
   // Anonymous tool usage only: never capture calculator values or user-entered text.
   // GTM must separately require analytics_storage consent before sending to GA4.
   function trackCalculator(tool) {
@@ -33,10 +49,10 @@
     const toolId = tool.file.replace(/\.js$/, '');
     function track(eventName) {
       if (window.MYBEARS_TOOLS_ANALYTICS_ENABLED === false || !Array.isArray(window.dataLayer)) return;
-      window.dataLayer.push({ event: eventName, component: 'mybears_calculator', tool_id: toolId });
+      window.dataLayer.push({ event: eventName, component: 'mybears_calculator', tool_id: toolId, tool_name: TOOL_NAMES[tool.selector] || toolId });
     }
-    track('mb_tool_view');
-    root.addEventListener('submit', function () { track('mb_tool_submit'); }, true);
+    track('kalkulacka_otevreni');
+    root.addEventListener('submit', function () { track('kalkulacka_odeslani_pokus'); }, true);
   }
 
 
